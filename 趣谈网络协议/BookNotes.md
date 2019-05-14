@@ -87,7 +87,7 @@
 
 ## 第7章：ICMP与Ping命令
 <b>1.关于ICMP协议</b>  
-> （1）ICMP全称是Internet Control Message Protocol，即互联网控制报文协议。属于OSI模型上的第三层协议。  
+> （1）ICMP全称是Internet Control Message Protocol，即互联网控制报文协议。属于OSI模型上的第三层协议，使用UDP协议传输数据包。  
 > （2）查询报文：例如基于ICMP协议封装的ping命令，以及ping命令里使用的TTL字段，也均所属ICMP协议。  
 > （3）差错报文分类  
 >> ① 主机不可达：回应客户端目标主机不可达的原因（例如主机不可达、端口不可达、协议不可达等等）；  
@@ -114,4 +114,5 @@
 19:31:44.983658 IP iZj6c1nz3zaf1odb59wcd5Z > 223.72.61.125: ICMP echo reply, id 22019, seq 0, length 64
 
 <b>4.Traceroute查询差错报文</b>  
->（1）
+>（1）Traceroute命令目的是利用ICMP协议来追踪出”源主机“到”目标主机“所经过的路由器。  
+>（2）Traceroute原理：基于ICMP协议，通过递增设置TTL来进行追踪出路由器IP（首次TTL为1）；通过设置上层协议UDP错误端口（30000以上的端口），来判断主机是否可达。   
