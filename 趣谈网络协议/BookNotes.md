@@ -301,7 +301,7 @@
 >（2）在Kernel中，会为每个Socket维护两个队列，一个是已经建立连接的队列（处于established状态），另一个是还没有完全建立连接的队列（处于SYN_RCV状态）  
 >（3）服务器调用accept函数时，会从established队列中取出一个连接（也就是经过三次握手的连接）
 >（4）在Linux Kernel中，Socket就是以文件的形式存在。  
->（5）关于文件存储，理解不太透彻。。。
+>（5）关于文件存储，后面内容理解不太好，有点依赖Linux操作系统知识了，等第二轮学习在补充吧。（<font color="blue">待补充</font>）。
 >![](chapter13-1.jpg)
 >（6）多进程方式实现SocketServer
 >![](chapter13-2.jpg)
@@ -310,7 +310,8 @@
 >（8）epoll方式实现SocketServer
 >![](chapter13-4.jpg)
 
-
+## 第14章：HTTP协议
+#### 1.前言
 
 
 
