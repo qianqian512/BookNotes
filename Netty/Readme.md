@@ -1,5 +1,6 @@
 #### 1.ServerBootstrap的childOption和option有什么区别?childHandler和handler有什么区别？
-
+> * option作用于Boss线程配置，例如可以设置backlog长度；childOption作用于worker线程，例如指定keepAlive，是否支持半关闭状态，可以发现都是接收客户端Connected之后的事了。
+> * handler()和childHandler()的主要区别是，handler()是发生在初始化的时候，childHandler()是发生在客户端连接之后。
 
 #### 2.关于ChannelInboundHandlerAdapter、SimpleChannelInboundHandler和ReplayingDecoder类区别
 > 1. 继承SimpleChannelInboundHandler类之后，会在接收到数据后会自动release掉数据占用的Bytebuffer资源。并且继承该类需要指定数据格式。
@@ -24,3 +25,7 @@ buf.put(bytes);
 byte[] bytes = ...  
 ByteBuf byteBuf = Unpooled.wrappedBuffer(bytes);  
 ```
+
+#### Netty使用经验
+> 1. IO通信读写缓冲区可以使用DirectByteBuf；后端业务消息编解码使用HeapByteBuf，这样组合可以达到性能最优。
+> 2. 为了提升性能，Netty默认的IO Buffer使用直接内存DirectByteBuf（零拷贝）
