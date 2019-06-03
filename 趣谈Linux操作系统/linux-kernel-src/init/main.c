@@ -547,8 +547,8 @@ asmlinkage __visible void __init start_kernel(void)
 	char *command_line;
 	char *after_dashes;
 
-	set_task_stack_end_magic(&init_task);
-	smp_setup_processor_id();
+	set_task_stack_end_magic(&init_task); // 创建0号进程，该函数定义于kernel/fork.c文件
+	smp_setup_processor_id(); // 该函数在kernel中是一个空的实现，
 	debug_objects_early_init();
 
 	cgroup_init_early();
@@ -560,7 +560,7 @@ asmlinkage __visible void __init start_kernel(void)
 	 * Interrupts are still disabled. Do necessary setups, then
 	 * enable them.
 	 */
-	boot_cpu_init();
+	boot_cpu_init(); // 该函数位于kernel/cpu.c文件中，正如注释说明，用于激活第一个处理器。
 	page_address_init();
 	pr_notice("%s", linux_banner);
 	setup_arch(&command_line);
