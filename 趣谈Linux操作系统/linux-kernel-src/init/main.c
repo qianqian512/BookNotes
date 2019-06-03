@@ -547,12 +547,31 @@ asmlinkage __visible void __init start_kernel(void)
 	char *command_line;
 	char *after_dashes;
 
-	set_task_stack_end_magic(&init_task); // 创建0号进程，该函数定义于kernel/fork.c文件
-	smp_setup_processor_id(); // 该函数在kernel中是一个空的实现，
+	// 创建0号进程，该函数定义于【kernel/fork.c】
+	set_task_stack_end_magic(&init_task);
+
+	/*
+	 * kernel为了兼容各种版本分支，该函数在kernel中是预留的一个空实现，在某些版本的OS上，例如arm架构会实现这
+	 * 个函数（代码位于arch/arm64/kernel/setup.c），在x86架构上，这个函数是为空的。
+	 * 值得注意的是，smp_setup_processor_id函数有一个weak修饰符，意图是让编译器在编译时可以忽略函数未定义
+	 * 的错误；如果编译器发现2个或2个以上的smp_setup_processor_id函数，则自动忽略带weak属性的函数定义。
+	 */
+	smp_setup_processor_id();
+	// 用于kernel调试用的，该函数定义于【lib/debugobject.c】
 	debug_objects_early_init();
 
+	/*
+	 * 初始化cgroup所需要的参数，受限于参数CONFIG_CGROUPS,如果没有则为空函数，如果定义该参数则使用【kernel/cgroup/cgroup.c】
+	 * CGroup全称Linux Control Group，是Linux内核的一个功能，用来限制，控制与分离一个进程组群的资源，如CPU、内
+	 * 存、磁盘输入输出等（例如Docker在做资源隔离时，底层实现就是使用cgroup机制）
+	 */
 	cgroup_init_early();
 
+	/*
+	 * local_irq_disable = Local Interrupt Request Disable（禁止本地CPU中断）
+	 * 屏蔽当前CPU的所有中断，因为在Kernel初始化过程中，中断可能带来意想不到的异常，因此给与屏蔽，一切都要等到初始
+	 * 化完成等后，才允许CPU被打断操作。
+	 */
 	local_irq_disable();
 	early_boot_irqs_disabled = true;
 
@@ -560,7 +579,7 @@ asmlinkage __visible void __init start_kernel(void)
 	 * Interrupts are still disabled. Do necessary setups, then
 	 * enable them.
 	 */
-	boot_cpu_init(); // 该函数位于kernel/cpu.c文件中，正如注释说明，用于激活第一个处理器。
+	boot_cpu_init(); // 该函数位于kernel/cpu.c文件中，正如注释说明，用于激活第一个处理器。 TODO
 	page_address_init();
 	pr_notice("%s", linux_banner);
 	setup_arch(&command_line);
