@@ -13,9 +13,9 @@
 
 #### 5.零拷贝（Zero-Copy）
 >  Netty Zero-Copy 是指ByteBuf在操作原始byte数组时，可以直接在原始byte数组上建立逻辑关系。从而不用另行开辟一段内存空间copy一份byte数组，因此叫做Zero-Copy。下面用代码来做说明：  
-> One-Copy做法：除了bytes占用的空间外，还需要再申请一段空间，然后将bytes写入到byteBuf里去，导致内存中存在两份bytes对象  
+> One-Copy做法：除了bytes占用的空间外，还需要再申请一段空间，然后将bytes写入到byteBuf里去，导致内存中存在两份bytes对象，以JDK NIO为例：  
 byte[] bytes = ...  
-ByteBuf byteBuf = Unpooled.buffer();  
-byteBuf.writeBytes(bytes);  
+ByteBuffer buf = ByteBuffer.allocate(bytes.length);
+buf.put(bytes);
 > Zero-Copy做法：wrappedBuffer直接将bytes对象包装返回，返回的byteBuf其内部也指向了bytes数组，因此bytes和byteBuf内部的bytes实际是指向了同一个对象。 byte[] bytes = ...  
 ByteBuf byteBuf = Unpooled.wrappedBuffer(bytes);  
