@@ -542,6 +542,10 @@ void __init __weak arch_call_rest_init(void)
 	rest_init();
 }
 
+/**
+ * 初始化内核
+ * 参考：https://blog.csdn.net/notbaron/article/details/80033417
+ */
 asmlinkage __visible void __init start_kernel(void)
 {
 	char *command_line;
@@ -579,9 +583,19 @@ asmlinkage __visible void __init start_kernel(void)
 	 * Interrupts are still disabled. Do necessary setups, then
 	 * enable them.
 	 */
-	boot_cpu_init(); // 该函数位于kernel/cpu.c文件中，正如注释说明，用于激活第一个处理器。 TODO
+	boot_cpu_init(); // 该函数位于kernel/cpu.c文件中，正如注释说明，用于激活第一个处理器。
+	/*
+	 * 初始化内存部分：
+	 *  1.初始化页地址，使用链表将其链接起来
+	 *  2.高端内存相关，未定义高端内存的话为空函数
+	 */
 	page_address_init();
-	pr_notice("%s", linux_banner);
+	pr_notice("%s", linux_banner); // 这是打印出linux的Banner
+	/*
+	 * 进行初始化Kernel非常重要的一步，每个体系都有自己的setup_arch函数，但具体编译哪个体系的setup_arch
+	 * 是由Makefile中的ARCH变量决定（ARCH变量是通过&command_line传入吗？）。
+	 * 其中setup_arch内部主要做的职责，还是内存初始化部分：创建内核页表，映射所有的物理内存和IO空间。
+	 */
 	setup_arch(&command_line);
 	/*
 	 * Set up the the initial canary and entropy after arch
