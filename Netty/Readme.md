@@ -26,6 +26,9 @@ byte[] bytes = ...
 ByteBuf byteBuf = Unpooled.wrappedBuffer(bytes);  
 ```
 
+#### 6.ChannelHandlerContext.write和Channel.write的区别
+> 
+
 #### Netty使用经验
 > 1. IO通信读写缓冲区可以使用DirectByteBuf；后端业务消息编解码使用HeapByteBuf，这样组合可以达到性能最优。
 > 2. 为了提升性能，Netty默认的IO Buffer使用直接内存DirectByteBuf（零拷贝）
