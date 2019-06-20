@@ -126,14 +126,18 @@
 > 2. 线程中的数据：(1) 局部变量；（2）共享进程全局内存；（3）线程私有数据pthreadspecial
 
 #### 进程数据结构
-> 1. id字段有3个pid（process_id）、tgid（thread_group_id），group_leader。每个进程都有自己的pid，而每个线程都有自己的线程id（pthread_t类型)，内核通过tgid可以区分出线程属于哪一个线程组。当进程开始运行时，会创建一个线程组，线程组里只有一个主线程，主线程的tgid就等于pid，当其他创建其他线程时，就继承了主线程的tgid，这样内核就知道子线程属于哪个线程组了；group_leader就是指向主线程。
+> 1. id字段有3个pid（process_id）、tgid（thread_group_id），group_leader。每个进程都有自己的pid，而每个线程都有自己的线程id（pthread_t类型)，内核通过tgid可以区分出线程属于哪一个线程组。当进程开始运行时，会创建一个线程组，线程组里只有一个主线程，主线程的tgid就等于pid，当其他创建其他线程时，就继承了主线程的tgid，这样内核就知道子线程属于哪个线程组了；group_leader就是指向主线程。  
+> 2. <font color="blue">待补充</font>.  
+> ![](Chapter3-2.jpeg)
 
 #### 进程状态
 > 1. task_running并不一定是标识进程正在运行，而是表示线程已经准备就绪，等待cpu时间片可运行。
 > 2. task_interruptible：表示可中断的睡眠状态
 > 3. task_uninterrubtible：睡眠不可打断，不接受任何信号量，只能重启OS打断。
 > 4. task_killable：与task_interruptible类似，不过只能响应致命信号，例如kill。
-> 5. 
+
+## 第四部分：内存管理
+#### 
 
 
 
