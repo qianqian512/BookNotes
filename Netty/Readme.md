@@ -29,6 +29,9 @@ ByteBuf byteBuf = Unpooled.wrappedBuffer(bytes);
 #### 6.ChannelHandlerContext.write和Channel.write的区别
 > 
 
+#### 7.原生JDK的NIO在空轮询后为什么会出现CPU100%的情况，而Netty又是如何解决的？
+> https://www.cnblogs.com/qiumingcheng/p/9481528.html
+
 #### Netty使用经验
 > 1. IO通信读写缓冲区可以使用DirectByteBuf；后端业务消息编解码使用HeapByteBuf，这样组合可以达到性能最优。
 > 2. 为了提升性能，Netty默认的IO Buffer使用直接内存DirectByteBuf（零拷贝）
