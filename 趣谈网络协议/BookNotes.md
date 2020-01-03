@@ -35,6 +35,8 @@
 > （2）fifo_fast更加复杂一些，采用3个band：band0优先级最好，band2优先级最低。如果band0有数据包，则优先处理，band1和band2稍后。
 > （3）网络传过来的数据包，会进入哪个band，由IP头中的TOS字段（服务类型）记录。
 
+<b> 4.关于ifconfig中的lo网卡</b>
+> lo全称是local loopback（回环网卡），用于接收处理127.x开头的数据包，例如Client和Server都在同一台机器时，数据包传输并不会占用网卡带宽，而是走了回环网卡，通过tcpdump -i lo就能抓出。
 
 ## 第4章：DHCP与PXE
 
