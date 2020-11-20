@@ -20,6 +20,9 @@
 #### 5.NIO有多少种实现，Netty为什么要单独写一个NIO实现
 > Common实现、Linux实现、和MaxOS/BSD实现。Common的NIO实现在Linux下也是用epoll，但Netty重写后的NIO模型相比JDK实现更加完善，实现的更好。例如Netty默认是的NIO实现是边缘触发、JDK的NIO实现默认是水平触发。
 
+#### 6.BIO模型有半包、粘包的问题吗 
+> TCP粘包问题产生的原因不在于使用BIO或NIO的线程模型上，而是在read时，从流到缓冲区会产生半包；假如边读边解析，BIO也存在半包粘包等问题；如果接收完统一解析(这里假定不感知协议格式，收到对端RST包，就对之前收到的所有包进行一次性解析)，NIO也不存在半包粘包的问题了
+
 ##Netty使用
 #### 1.ServerBootstrap的childOption和option有什么区别?childHandler和handler有什么区别？
 > * option作用于Boss线程配置，例如可以设置backlog长度；childOption作用于worker线程，例如指定keepAlive，是否支持半关闭状态，可以发现都是接收客户端Connected之后的事了。
