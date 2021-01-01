@@ -46,3 +46,39 @@
 > 【锁消除】代码经过逃逸分析后，判断没有数据会逃逸出线程，就不会给这段这段代码加锁。  
 > 【锁粗化】如果虚拟机检测到有一系列零碎的操作都对同一对象加锁，就会将整个同步操作扩大到这些操作的外部，这样就只需要加锁一次即可，减少加锁释放锁带来的性能损耗。  
 > 参考：https://www.cnblogs.com/yewy/p/13584915.html
+
+
+####Happen-Before
+> 【Happen-before是什么】happen-before是JMM中定义的一套规则。  
+> 【Happen-before解决了什么问题】JVM通过定义Happen-before，对OS建立起了一套禁止指令重排序的规则，且这个规则对开发人员可见并可控。  
+> 【Happen-before规则】1.synchronized释放先于加锁；2.a before b，b before c，那么a也一定before c；3.volatile的写before读
+
+####Daemon线程怎么使用
+> Daemon线程一般作为后台守护线程使用，当整个JVM所有非Daemon线程退出后，JVM也会随之结束。通过Thread.setDaemon(true)可以将线程设置为Daemon线程。一般用于支持性的工作，典型的GC线程就是Daemon模式，当一般线程退出后，GC线程也就认为无事可做，也可以随之退出了。
+
+####ConcurrentHashMap实现原理
+>【数据结构】与HashMap类似是一个链表数组，在ConcurrntHashMap中是Segment + HashEntry的方式进行实现。   
+>【锁机制】  
+>【jdk1.8为什么要用红黑树代替】
+
+####Fork/Join框架
+> 【What's Fork/Join】Fork/Join是JDK7中用于并行执行任务的框架，可以将一个大任务拆分成多个小任务(Fork环节)，然后再将小任务的执行结果合并为最终结果(Join环节)。   
+> 【使用场景】可以将一个大任务拆分为多个互不相干的小任务，每个小任务交给单独一个线程执行，子任务并行期间与其他线程无任何交互，避免了锁竞争的开销，例如归并排序。
+
+####CyclicBarrier使用场景
+>【使用原理】为多个线程建立起一个屏障，当每个线程执行到达屏障时都会阻塞，只有最后一个线程也到达屏障时大门才会打开，所有线程都可以通过屏障继续执行下面程序。  
+>【使用场景】大体上可以替换CountDownLatch的所有场景，且支持更复杂的业务，例如可重复执行，到达屏障后执行预处理等。缺点是个人感觉语义不如CountDownLatch明确，CountDownLatch的用法一般是主线程await，子任务会进行countdown，逻辑更清晰；而CyclicBarrier不做区分，全部用await来表示，个人感觉代码的可读性不友好（举一个连接池初始化的例子，对比CountDownLatch和CyclicBarrier代码语义上的差异）。
+
+####Exchanger使用场景
+> 线程间交换数据协同工作类。可以在2个线程之间向对方传入自己的数据，可用于类似对账这种业务场景。
+
+####FutureTask
+>【使用概述】提交一个异步任务，并在当前线程中阻塞等待返回结果。
+>【实现原理】基于AQS实现，当调用get时，会进入自旋，然后通过LockSupport挂起当前线程，等待唤醒；当run执行完时会改变AQS的state，并唤醒挂起线程；调用get的线程被唤醒后会继续自旋，检查state，发现时Normal状态，则退出循环返回结果。
+
+####实现生产者消费者代码
+> 
+
+
+
+
