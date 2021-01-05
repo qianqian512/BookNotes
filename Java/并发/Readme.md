@@ -77,8 +77,10 @@
 >【实现原理】基于AQS实现，当调用get时，会进入自旋，然后通过LockSupport挂起当前线程，等待唤醒；当run执行完时会改变AQS的state，并唤醒挂起线程；调用get的线程被唤醒后会继续自旋，检查state，发现时Normal状态，则退出循环返回结果。
 
 ####实现生产者消费者代码
-> 
+> @see org.hum.test.concurrency.producer_and_consumer.BlockingQueueTest
 
-
+####CAS的缺点
+> ① CPU开销过大:在并发量比较高的情况下，如果许多线程反复尝试更新某一个变量，却又一直更新不成功，循环往复，会给CPU带来很到的压力。  
+> ② ABA问题
 
 
