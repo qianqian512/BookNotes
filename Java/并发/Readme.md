@@ -47,7 +47,6 @@
 > 【锁粗化】如果虚拟机检测到有一系列零碎的操作都对同一对象加锁，就会将整个同步操作扩大到这些操作的外部，这样就只需要加锁一次即可，减少加锁释放锁带来的性能损耗。  
 > 参考：https://www.cnblogs.com/yewy/p/13584915.html
 
-
 ####Happen-Before
 > 【Happen-before是什么】happen-before是JMM中定义的一套规则。  
 > 【Happen-before解决了什么问题】JVM通过定义Happen-before，对OS建立起了一套禁止指令重排序的规则，且这个规则对开发人员可见并可控。  
@@ -55,11 +54,6 @@
 
 ####Daemon线程怎么使用
 > Daemon线程一般作为后台守护线程使用，当整个JVM所有非Daemon线程退出后，JVM也会随之结束。通过Thread.setDaemon(true)可以将线程设置为Daemon线程。一般用于支持性的工作，典型的GC线程就是Daemon模式，当一般线程退出后，GC线程也就认为无事可做，也可以随之退出了。
-
-####ConcurrentHashMap实现原理
->【数据结构】与HashMap类似是一个链表数组，在ConcurrntHashMap中是Segment + HashEntry的方式进行实现。   
->【锁机制】  
->【jdk1.8为什么要用红黑树代替】
 
 ####Fork/Join框架
 > 【What's Fork/Join】Fork/Join是JDK7中用于并行执行任务的框架，可以将一个大任务拆分成多个小任务(Fork环节)，然后再将小任务的执行结果合并为最终结果(Join环节)。   
@@ -86,10 +80,22 @@
 ####HashTable中的size方法就一行代码，为什么还要加synchonrized
 > 避免在读写并发时，读取到的不是最新值，例如add时虽然添加完元素了，但size还未更新，此时锁未释放，而读取到非线程安全的size方法时，就返回了未更新的size。  
 
+####ConcurrentHashMap实现原理
+>【数据结构】与HashMap类似是一个链表数组，在ConcurrntHashMap中是Segment + HashEntry的方式进行实现。   
+>【锁机制】  
+>【jdk1.8为什么要用红黑树代替】
+
 ####高并发、任务执行时间短的业务怎样使用线程池？并发不高、任务执行时间长的业务怎样使用线程池？并发高、业务执行时间长的业务怎样使用线程池？
 
+####Future如何取消任务
 
+####Future和FutureTask区别
 
+####suspend和resume为什么会被废弃
 
+####如何使用interrupt方法
 
+####CopyOnWriteArrayList如何保证的线程安全
+> 1、读写分离，读和写分开 2、最终一致性 3、使用另外开辟空间的思路，来解决并发冲突
 
+####java中线程的状态机
