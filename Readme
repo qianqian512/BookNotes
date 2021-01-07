@@ -1,2 +1,7 @@
 M1 - Java
 M2 - 中间件
+
+
+TODO
+1.synchronize升级和markword
+2.ThreadLocal里的Entry为什么会被定义成WeakReference
