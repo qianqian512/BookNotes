@@ -5,3 +5,10 @@ M2 - 中间件
 TODO
 1.synchronize升级和markword
 2.ThreadLocal里的Entry为什么会被定义成WeakReference
+
+
+http://www.voidcn.com/article/p-trwygpiz-bxk.html
+https://zhuanlan.zhihu.com/p/267437618?utm_source=wechat_session
+https://baijiahao.baidu.com/s?id=1668364538524470046&wfr=spider&for=pc
+https://www.jianshu.com/p/8671585fce31
+https://blog.csdn.net/shark1357/article/details/109734442
