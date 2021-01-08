@@ -1,0 +1,4 @@
+Description	Resource	Path	Location
+疑似注册native的地方	methodHandles.cpp	/BookNotes/Java/src/share/vm/prims	line 275
+CallInfo	linkResolver.hpp	/BookNotes/Java/src/share/vm/interpreter	line 79
+synchronized加锁使用的Monitor定义	objectMonitor.hpp	/BookNotes/Java/src/share/vm/runtime	line 74
