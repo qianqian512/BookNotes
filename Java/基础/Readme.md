@@ -62,7 +62,8 @@
 ```
 
 ####如何使用interrupt方法
-> interrupt并不能直接中断线程运行，而是设置了一个中断标记，然后在线程执行的过程中来进行check，自行确定是否要中断。使用volatile的状态的标记也可以作为替代方案。	
+> 1.interrupt并不能直接中断线程运行，而是设置了一个中断标记，然后在线程执行的过程中来进行check，自行确定是否要中断。使用volatile的状态的标记也可以作为替代方案。	
+> 2.Thread调用sleep()、join()或wait()方法后，也可以通过interrupt方法中断	 
 
 ```
 	public static void main(String[] args) throws IOException, InterruptedException {
