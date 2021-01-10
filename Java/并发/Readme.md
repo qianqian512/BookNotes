@@ -61,7 +61,7 @@
 
 ####CyclicBarrier使用场景
 >【使用原理】为多个线程建立起一个屏障，当每个线程执行到达屏障时都会阻塞，只有最后一个线程也到达屏障时大门才会打开，所有线程都可以通过屏障继续执行下面程序。  
->【使用场景】大体上可以替换CountDownLatch的所有场景，且支持更复杂的业务，例如可重复执行，到达屏障后执行预处理等。缺点是个人感觉语义不如CountDownLatch明确，CountDownLatch的用法一般是主线程await，子任务会进行countdown，逻辑更清晰；而CyclicBarrier不做区分，全部用await来表示，个人感觉代码的可读性不友好（举一个连接池初始化的例子，对比CountDownLatch和CyclicBarrier代码语义上的差异）。
+>【使用场景】大体上可以替换CountDownLatch的所有场景，且支持更复杂的业务，例如可重复执行，到达屏障后执行预处理等。缺点是个人感觉部分场景下，语义不如CountDownLatch明确，CountDownLatch的用法一般是主线程await，子任务会进行countdown，逻辑更清晰；而CyclicBarrier不做区分，全部用await来表示，个人感觉代码的可读性不友好（举一个连接池初始化的例子，对比CountDownLatch和CyclicBarrier代码语义上的差异）。
 
 ####Exchanger使用场景
 > 线程间交换数据协同工作类。可以在2个线程之间向对方传入自己的数据，可用于类似对账这种业务场景。
