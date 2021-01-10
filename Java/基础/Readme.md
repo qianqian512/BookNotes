@@ -25,3 +25,40 @@
 > 编译器通过泛型对类型进行校验，但运行期会对泛型擦除，不记录类型信息
 
 ####如何进行反射，如何提高反射的性能
+
+####suspend和resume为什么会被废弃
+> 相比替代方案wait和notify而言，suspend和resume最大问题是非线程安全的，只能适用于没有synchronized的场景。
+
+```
+	public static void main(String[] args) throws IOException {
+
+		Object lock = new Object();
+
+		Thread t1 = new Thread(() -> {
+			synchronized (lock) {
+				System.out.println("wait message...");
+				// 调用线程的suspend方法，并不会导致lock对象释放锁，这样线程2就永远无法进入临界区
+				Thread.currentThread().suspend();
+				System.out.println("received message");
+			}
+		});
+
+		t1.start();
+
+		new Thread(() -> {
+			synchronized (lock) {
+				// 线程2永远也无法进入这里
+				System.out.println("enter");
+				t1.resume();
+				System.out.println("sended message");
+			}
+		}).start();
+
+		System.in.read();
+	}
+```
+
+####如何使用interrupt方法
+
+####java中线程的状态机
+>![](JavaThreadState.jpeg)  
