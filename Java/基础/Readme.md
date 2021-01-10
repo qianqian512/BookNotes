@@ -25,6 +25,9 @@
 > 编译器通过泛型对类型进行校验，但运行期会对泛型擦除，不记录类型信息
 
 ####如何进行反射，如何提高反射的性能
+> 1.创建实例时，Class.forName比较耗时，避免每次构造对象都使用Class.forName构建ClassType实例；
+> 2.反射调用方法时，method.setAccessible(true)，可以提高将近一半效率，原因是在调用Invoke方法时会执行安全检查，这个操作会比较耗时；  
+> 3.直接饮用第三方类库，使用字节码增强机制。  
 
 ####suspend和resume为什么会被废弃
 > 相比替代方案wait和notify而言，suspend和resume最大问题是非线程安全的，只能适用于没有synchronized的场景。
@@ -59,6 +62,29 @@
 ```
 
 ####如何使用interrupt方法
+> interrupt并不能直接中断线程运行，而是设置了一个中断标记，然后在线程执行的过程中来进行check，自行确定是否要中断。使用volatile的状态的标记也可以作为替代方案。	
+
+```
+	public static void main(String[] args) throws IOException, InterruptedException {
+		
+		Thread t1 = new Thread(() -> {
+			while (!Thread.currentThread().isInterrupted()) {
+			}
+			System.out.println("t1 exit");
+		});
+		t1.start();
+		
+		new Thread(() -> {
+			try {
+				Thread.sleep(3000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			t1.interrupt();
+			System.out.println("t2 interrupt t1");
+		}).start();
+	}
+```
 
 ####java中线程的状态机
 >![](JavaThreadState.jpeg)  
