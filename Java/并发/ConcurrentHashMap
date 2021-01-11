@@ -1,0 +1,10 @@
+####数据结构
+数组＋链表＋红黑树
+
+####并发原理
+cas乐观锁+synchronized锁
+
+####加锁对象
+数组每个位置的头节点
+
+https://www.cnblogs.com/ylspace/p/12726672.html

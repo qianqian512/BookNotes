@@ -5,7 +5,9 @@ public class InterruptTest {
 	public static void main(String[] args) throws IOException, InterruptedException {
 		
 		Thread t1 = new Thread(() -> {
-			while (!Thread.currentThread().isInterrupted()) {
+			try {
+				Thread.sleep(50000);
+			} catch (InterruptedException e) {
 			}
 			System.out.println("t1 exit");
 		});
