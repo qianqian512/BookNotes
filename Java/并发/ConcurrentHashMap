@@ -7,4 +7,16 @@ cas乐观锁+synchronized锁
 ####加锁对象
 数组每个位置的头节点
 
+####inittab时为什么要用thread.yield
+
+####初始化散列表时，如何保证线程安全
+> 在初始化table时，通过自旋cas保证只能有一个线程初始化table，其余线程再cas失败后会通过thread.yield让出cpu时间片，然后退出初始化，直接进入put node环节。
+
+####put node时如何保证线程安全
+> 1.在散列表中对应的位置如果为null，则通过CAS创建一个链表头。
+> 2.如果散列表中对应已经存在对象(可能是链表的头、也可能是RB树的根)，则进行synchonrized加锁，保证在这个段中同一时刻只能有一个线程给这个(链表/RB树)添加节点。
+
+####扩容时如何保证线程安全，以及扩容时访问old map时如何保证线程安全
+>
+
 https://www.cnblogs.com/ylspace/p/12726672.html
