@@ -19,4 +19,7 @@ cas乐观锁+synchronized锁
 ####扩容时如何保证线程安全，以及扩容时访问old map时如何保证线程安全
 >
 
+####JDK8中，HashMap的节点用TreeNode，而ConcurrentHashMap的红黑树节点为什么用TreeBin
+> 避免所在分段锁发生改变，因为红黑树在插入时为了保持平衡，根节点会发生变化，从而导致ConcurrentHashMap无法对同一个分段多次加上同一把锁。TreeBin作为整个红黑树对象，root节点发生变化只是TreeBin内部状态变化而已，对加锁无影响。
+
 https://www.cnblogs.com/ylspace/p/12726672.html
