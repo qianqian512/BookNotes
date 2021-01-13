@@ -1018,10 +1018,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
          * 通过自旋的方式添加节点，自旋退出条件为添加节点成功
          */
         for (Node<K,V>[] tab = table;;) {
-            Node<K,V> node; // 这个node代表了key对应槽位的链表Header、或者红黑树对象，也可能是迁移时用的ForwardNode (在下面step2中赋的值)
-            int tabLen; // 进入put方法时，table长度的快照
-            int nodeIndex; // 插入的key根据hash计算应该落入table的槽位 (在下面step2中赋的值)
-            int nodeHashOrState; // node节点的状态或Hash值? XXX
+            Node<K,V> node; // 原变量f：这个node代表了key对应槽位的链表Header、或者红黑树对象，也可能是迁移时用的ForwardNode (在下面step2中赋的值)
+            int tabLen; // 原变量n：进入put方法时，table长度的快照
+            int nodeIndex; // 原变量i：插入的key根据hash计算应该落入table的槽位 (在下面step2中赋的值)
+            int nodeHashOrState; // 原变量fh：node节点的状态或Hash值? XXX
             // 1.ConcurrentHashMap实例首次添加元素，table还未初始化，因此需要初始化table，初始化完成后继续尝试添加节点
             if (tab == null || (tabLen = tab.length) == 0) {
                 tab = initTable();
@@ -1047,9 +1047,9 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     	// 4.1.1 如果当前槽位的存储结构采用链表，则通过尾插法将Hash碰撞的节点插入到链表尾部
                         if (nodeHashOrState >= 0) {
                             binCount = 1; // 记录当前链表中有几个节点
-                            // 这个for循环是在从header到tail遍历链表
+                            // 原变量e：这个for循环是在从header到tail遍历链表
                             for (Node<K,V> cursorNode = node;; ++binCount) {
-                                K cursorKey;
+                                K cursorKey; // 原变量ek
                                 // 实现putIfAbsent方法，如果putSameKey，则不替换newValue，保持原Key-Value。
                                 if (cursorNode.hash == hash && ((cursorKey = cursorNode.key) == key || (cursorKey != null && key.equals(cursorKey)))) {
                                     oldVal = cursorNode.val;
