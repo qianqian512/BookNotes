@@ -6,6 +6,35 @@ TODO
 1.CMAP整理：https://www.cnblogs.com/ylspace/p/12726672.html
 2.ThreadLocal里的Entry为什么会被定义成WeakReference
 
+	static class ThreadLocal2<T> {
+		private Map<Thread, T> map = new HashMap<>();
+		
+		public void set(T val) {
+			map.put(Thread.currentThread(), val);
+		}
+		
+		public T get() {
+			return map.get(Thread.currentThread());
+		}
+		
+		public void remove() {
+			map.remove(Thread.currentThread());
+		}
+	}
+
+	public static void main(String[] args) throws InterruptedException {
+		ThreadLocal2<Integer> tl = new ThreadLocal2<>();
+		new Thread(()-> {
+			tl.set(1);
+			System.out.println(tl.get());
+		}).start();
+		
+		tl.set(2);
+		System.out.println("2=" + tl.get());
+		Thread.sleep(100);
+		System.out.println("2=" + tl.get());
+	}
+
 
 http://www.voidcn.com/article/p-trwygpiz-bxk.html
 https://zhuanlan.zhihu.com/p/267437618?utm_source=wechat_session

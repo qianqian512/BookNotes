@@ -28,4 +28,6 @@ cas乐观锁+synchronized锁
 > 如果竞争修改CountCell失败，会重新计算线程随机数，尝试对其他CountCell进行修改，如果竞争再次失败，则会对CountCell进行扩容，增大热点范围。
 > CountCell扩容终止条件时，当内部Cell数量超过CPU数量时，即停止扩容。
 
+####get时为什么没有锁？
+
 https://www.cnblogs.com/ylspace/p/12726672.html

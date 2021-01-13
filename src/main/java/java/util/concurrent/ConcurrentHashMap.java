@@ -1007,27 +1007,42 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
 
     /** Implementation for put and putIfAbsent */
     final V putVal(K key, V value, boolean onlyIfAbsent) {
-        if (key == null || value == null) throw new NullPointerException();
+        if (key == null || value == null) { 
+        	throw new NullPointerException();
+        }
+        // 根据key计算hash值，hash值的结果取决于node落入table的位置
         int hash = spread(key.hashCode());
+        // ?
         int binCount = 0;
+        /**
+         * 通过自旋的方式添加节点，自旋退出条件为添加节点成功
+         */
         for (Node<K,V>[] tab = table;;) {
-            Node<K,V> f; int n, i, fh;
-            if (tab == null || (n = tab.length) == 0)
+            Node<K,V> node; int tabLen, nodeIndex, nodeHash;
+            // 1.ConcurrentHashMap实例首次添加元素，table还未初始化，因此需要初始化table，初始化完成后继续尝试添加节点
+            if (tab == null || (tabLen = tab.length) == 0) {
                 tab = initTable();
-            else if ((f = tabAt(tab, i = (n - 1) & hash)) == null) {
-                if (casTabAt(tab, i, null,
-                             new Node<K,V>(hash, key, value, null)))
-                    break;                   // no lock when adding to empty bin
             }
-            else if ((fh = f.hash) == MOVED)
-                tab = helpTransfer(tab, f);
+            // 2.通过node的hash值计算出落入table位置，倘若「槽位」中还没有元素，则直接根据k-v参数创建出Node对象，并作为链表的头结点
+            else if ((node = tabAt(tab, nodeIndex = (tabLen - 1) & hash)) == null) {
+            	// 2.1通过CAS方式保证只能有一个节点成为Header，竞争失败的通过自旋走到下面尾插法的逻辑   （no lock when adding to empty bin）
+                if (casTabAt(tab, nodeIndex, null, new Node<K,V>(hash, key, value, null))) {
+                    break;                   
+                }
+            }
+            // 3.如果新增的key落入的「槽位」正处于迁移状态？还是扩容状态，则无法进行插入，进而选择了helpTransfer
+            else if ((nodeHash = node.hash) == MOVED) {
+                tab = helpTransfer(tab, node);
+            } 
+            // 4.如果落入的「槽位」不处于上面的状态，则可以对当前槽位进行插入操作（或是追加到链表尾部，或是插入到红黑树中）
             else {
                 V oldVal = null;
-                synchronized (f) {
-                    if (tabAt(tab, i) == f) {
-                        if (fh >= 0) {
+                // 4.1 锁住这个槽位，确保ConcurrentHashMap中每个「槽位」只能单线程操作，get时没有锁。
+                synchronized (node) {
+                    if (tabAt(tab, nodeIndex) == node) {
+                        if (nodeHash >= 0) {
                             binCount = 1;
-                            for (Node<K,V> e = f;; ++binCount) {
+                            for (Node<K,V> e = node;; ++binCount) {
                                 K ek;
                                 if (e.hash == hash &&
                                     ((ek = e.key) == key ||
@@ -1044,11 +1059,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                     break;
                                 }
                             }
-                        }
-                        else if (f instanceof TreeBin) {
+                        } else if (node instanceof TreeBin) {
                             Node<K,V> p;
                             binCount = 2;
-                            if ((p = ((TreeBin<K,V>)f).putTreeVal(hash, key,
+                            if ((p = ((TreeBin<K,V>)node).putTreeVal(hash, key,
                                                            value)) != null) {
                                 oldVal = p.val;
                                 if (!onlyIfAbsent)
@@ -1059,7 +1073,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 }
                 if (binCount != 0) {
                     if (binCount >= TREEIFY_THRESHOLD)
-                        treeifyBin(tab, i);
+                        treeifyBin(tab, nodeIndex);
                     if (oldVal != null)
                         return oldVal;
                     break;
