@@ -7,7 +7,8 @@ cas乐观锁+synchronized锁
 ####加锁对象
 数组每个位置的头节点
 
-####inittab时为什么要用thread.yield
+####inittab时为什么要用thread.yield，能起到多大的作用？
+> 
 
 ####初始化散列表时，如何保证线程安全
 > 在初始化table时，通过自旋cas保证只能有一个线程初始化table，其余线程再cas失败后会通过thread.yield让出cpu时间片，然后退出初始化，直接进入put node环节。
@@ -17,7 +18,7 @@ cas乐观锁+synchronized锁
 > 2.如果散列表中对应已经存在对象(可能是链表的头、也可能是RB树的根)，则进行synchonrized加锁，保证在这个段中同一时刻只能有一个线程给这个(链表/RB树)添加节点。
 
 ####扩容时如何保证线程安全，以及扩容时访问old map时如何保证线程安全
->
+> 
 
 ####JDK8中，HashMap的节点用TreeNode，而ConcurrentHashMap的红黑树节点为什么用TreeBin
 > 避免所在分段锁发生改变，因为红黑树在插入时为了保持平衡，根节点会发生变化，从而导致ConcurrentHashMap无法对同一个分段多次加上同一把锁。TreeBin作为整个红黑树对象，root节点发生变化只是TreeBin内部状态变化而已，对加锁无影响。
@@ -25,5 +26,6 @@ cas乐观锁+synchronized锁
 ####ConcurrentHashMap如何统计size的
 > 利用热点分散，先CAS竞争修改BaseCount字段，失败后再分散到修改CountCell数组。最终统计时利用BaseCount+sum(CountCell)即可
 > 如果竞争修改CountCell失败，会重新计算线程随机数，尝试对其他CountCell进行修改，如果竞争再次失败，则会对CountCell进行扩容，增大热点范围。
+> CountCell扩容终止条件时，当内部Cell数量超过CPU数量时，即停止扩容。
 
 https://www.cnblogs.com/ylspace/p/12726672.html
