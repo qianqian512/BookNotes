@@ -1012,70 +1012,81 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
         // 根据key计算hash值，hash值的结果取决于node落入table的位置
         int hash = spread(key.hashCode());
-        // ?
+        // XXX
         int binCount = 0;
         /**
          * 通过自旋的方式添加节点，自旋退出条件为添加节点成功
          */
         for (Node<K,V>[] tab = table;;) {
-            Node<K,V> node; int tabLen, nodeIndex, nodeHash;
+            Node<K,V> node; // 这个node代表了key对应槽位的链表Header、或者红黑树对象，也可能是迁移时用的ForwardNode (在下面step2中赋的值)
+            int tabLen; // 进入put方法时，table长度的快照
+            int nodeIndex; // 插入的key根据hash计算应该落入table的槽位 (在下面step2中赋的值)
+            int nodeHashOrState; // node节点的状态或Hash值? XXX
             // 1.ConcurrentHashMap实例首次添加元素，table还未初始化，因此需要初始化table，初始化完成后继续尝试添加节点
             if (tab == null || (tabLen = tab.length) == 0) {
                 tab = initTable();
             }
-            // 2.通过node的hash值计算出落入table位置，倘若「槽位」中还没有元素，则直接根据k-v参数创建出Node对象，并作为链表的头结点
+            // 2.通过node的hash值计算出落入table位置，倘若槽位中还没有元素，则直接根据k-v参数创建出Node对象，并作为链表的头结点
             else if ((node = tabAt(tab, nodeIndex = (tabLen - 1) & hash)) == null) {
             	// 2.1通过CAS方式保证只能有一个节点成为Header，竞争失败的通过自旋走到下面尾插法的逻辑   （no lock when adding to empty bin）
                 if (casTabAt(tab, nodeIndex, null, new Node<K,V>(hash, key, value, null))) {
                     break;                   
                 }
             }
-            // 3.如果新增的key落入的「槽位」正处于迁移状态？还是扩容状态，则无法进行插入，进而选择了helpTransfer
-            else if ((nodeHash = node.hash) == MOVED) {
+            // 3.如果新增的key落入的槽位正处于迁移状态？还是扩容状态，则无法进行插入，进而选择了helpTransfer XXX
+            else if ((nodeHashOrState = node.hash) == MOVED) {
                 tab = helpTransfer(tab, node);
             } 
-            // 4.如果落入的「槽位」不处于上面的状态，则可以对当前槽位进行插入操作（或是追加到链表尾部，或是插入到红黑树中）
+            // 4.如果落入的槽位不处于上面的状态，则可以对当前槽位进行插入操作（或是追加到链表尾部，或是插入到红黑树中）
             else {
                 V oldVal = null;
-                // 4.1 锁住这个槽位，确保ConcurrentHashMap中每个「槽位」只能单线程操作，get时没有锁。
+                // 4.1 锁住这个槽位，确保ConcurrentHashMap中每个槽位只能单线程操作，get时没有锁。
                 synchronized (node) {
+                	// 进入临界区后，再次确认这个槽位没有发生变化后，才能执行添加操作；反之退出新增，重新自旋根据节点状态再选择操作
                     if (tabAt(tab, nodeIndex) == node) {
-                        if (nodeHash >= 0) {
-                            binCount = 1;
-                            for (Node<K,V> e = node;; ++binCount) {
-                                K ek;
-                                if (e.hash == hash &&
-                                    ((ek = e.key) == key ||
-                                     (ek != null && key.equals(ek)))) {
-                                    oldVal = e.val;
-                                    if (!onlyIfAbsent)
-                                        e.val = value;
+                    	// 4.1.1 如果当前槽位的存储结构采用链表，则通过尾插法将Hash碰撞的节点插入到链表尾部
+                        if (nodeHashOrState >= 0) {
+                            binCount = 1; // 记录当前链表中有几个节点
+                            // 这个for循环是在从header到tail遍历链表
+                            for (Node<K,V> cursorNode = node;; ++binCount) {
+                                K cursorKey;
+                                // 实现putIfAbsent方法，如果putSameKey，则不替换newValue，保持原Key-Value。
+                                if (cursorNode.hash == hash && ((cursorKey = cursorNode.key) == key || (cursorKey != null && key.equals(cursorKey)))) {
+                                    oldVal = cursorNode.val;
+                                    if (!onlyIfAbsent) {
+                                        cursorNode.val = value;
+                                    }
                                     break;
                                 }
-                                Node<K,V> pred = e;
-                                if ((e = e.next) == null) {
-                                    pred.next = new Node<K,V>(hash, key,
-                                                              value, null);
+                                Node<K,V> pred = cursorNode;
+                                // 遍历链表节点，遇到next==null代表已经到末尾了，可以将新的节点插入到队尾。
+                                if ((cursorNode = cursorNode.next) == null) {
+                                    pred.next = new Node<K,V>(hash, key, value, null);
                                     break;
                                 }
                             }
-                        } else if (node instanceof TreeBin) {
+                        } 
+                        // 4.1.2 如果当前槽位节点过多，已经使用红黑树存储，则将k-v作为子节点插入到树中。
+                        else if (node instanceof TreeBin) {
                             Node<K,V> p;
                             binCount = 2;
-                            if ((p = ((TreeBin<K,V>)node).putTreeVal(hash, key,
-                                                           value)) != null) {
+                            if ((p = ((TreeBin<K,V>)node).putTreeVal(hash, key, value)) != null) {
                                 oldVal = p.val;
-                                if (!onlyIfAbsent)
+                                if (!onlyIfAbsent) {
                                     p.val = value;
+                                }
                             }
                         }
                     }
                 }
                 if (binCount != 0) {
-                    if (binCount >= TREEIFY_THRESHOLD)
+                	// 如果链表中的节点超过阈值，则需要进行树化
+                    if (binCount >= TREEIFY_THRESHOLD) {
                         treeifyBin(tab, nodeIndex);
-                    if (oldVal != null)
+                    }
+                    if (oldVal != null) {
                         return oldVal;
+                    }
                     break;
                 }
             }
