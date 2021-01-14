@@ -1046,7 +1046,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     if (tabAt(tab, nodeIndex) == node) {
                     	// 4.1.1 如果当前槽位的存储结构采用链表，则通过尾插法将Hash碰撞的节点插入到链表尾部
                         if (nodeHashOrState >= 0) {
-                            binCount = 1; // 记录当前链表中有几个节点
+                            binCount = 1; // 在4.1.1代码段里，bitCount代表当前链表中有几个节点
                             // 原变量e：这个for循环是在从header到tail遍历链表
                             for (Node<K,V> cursorNode = node;; ++binCount) {
                                 K cursorKey; // 原变量ek
@@ -2245,26 +2245,37 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * Initializes table, using the size recorded in sizeCtl.
      */
     private final Node<K,V>[] initTable() {
-        Node<K,V>[] tab; int sc;
-        while ((tab = table) == null || tab.length == 0) {
-            if ((sc = sizeCtl) < 0)
+        Node<K,V>[] tabbleCopy; // 原变量tab：这里代表是ConcurrentHashMap中table的副本 
+        int sizeCtlCopy; // 原变量sc：这里是sizeCtl的副本
+        // 因为当前方法主要是初始化table，因此这里首先自旋判断table是否为null
+        while ((tabbleCopy = table) == null || tabbleCopy.length == 0) {
+        	// 参考sizeCtl字段上的注释，得知sizeCtl如果为-1，代表Table正在被其他线程初始化中，因此当前线程让出CPU时间片，避免自旋无意义的消耗CPU
+            if ((sizeCtlCopy = sizeCtl) < 0) {
                 Thread.yield(); // lost initialization race; just spin
-            else if (U.compareAndSwapInt(this, SIZECTL, sc, -1)) {
+            } 
+            // 走到这个判断分支，说明Map没有初始化，则通过CAS来竞争初始化
+            else if (U.compareAndSwapInt(this, SIZECTL, sizeCtlCopy, -1)) {
                 try {
-                    if ((tab = table) == null || tab.length == 0) {
-                        int n = (sc > 0) ? sc : DEFAULT_CAPACITY;
+                	// 竞争成功，进入临界区后再次判断table是否初始化完成
+                    if ((tabbleCopy = table) == null || tabbleCopy.length == 0) {
+                    	// 原变量n：代表table要初始化的长度
+                        int tableNeedInitLen = (sizeCtlCopy > 0) ? sizeCtlCopy : DEFAULT_CAPACITY;
+                        // 初始化table
                         @SuppressWarnings("unchecked")
-                        Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n];
-                        table = tab = nt;
-                        sc = n - (n >>> 2);
+                        Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[tableNeedInitLen];
+                        // 刷新主存的table
+                        table = tabbleCopy = nt;
+                        // TODO ???
+                        sizeCtlCopy = tableNeedInitLen - (tableNeedInitLen >>> 2);
                     }
                 } finally {
-                    sizeCtl = sc;
+                	// 将堆栈的变量flush回主存
+                    sizeCtl = sizeCtlCopy;
                 }
                 break;
             }
         }
-        return tab;
+        return tabbleCopy;
     }
 
     /**
