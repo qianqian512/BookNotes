@@ -2290,28 +2290,34 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * because resizings are lagging additions.
      * 
      * 如果table比较小，还无需扩容时，则只是计数+1即可。如果table处于扩容中，
-     * 调用该方法的线程则帮忙一起扩容。
+     * 调用该方法的线程则帮忙一起扩容。因为在扩容期间存在新加元素的可能，所以在
+     * 扩容后重新检查空间占用情况，判断是否需要再次重新调整大小。
      *
      * @param x the count to add
-     * @param check if <0, don't check resize, if <= 1 only check if uncontended
+     * @param check if <0, don't check resize, if <= 1 only check if uncontended 在(如果check小于0，则不检查扩容；如果小于等于1，则只检查是否竞争成功？新增时调用，传入check肯定是大于0)
      */
     private final void addCount(long x, int check) {
-        CounterCell[] as; 
+        CounterCell[] countCellCopy;  // 原变量as：代表counterCells的副本
         long baseCountCopy; // 原变量b：代表baseCount的副本 
         long expectedBaseCount; // 原变量x：代表执行addCount后baseCount的新值
-        if ((as = counterCells) != null ||
-            !U.compareAndSwapLong(this, BASECOUNT, baseCountCopy = baseCount, expectedBaseCount = baseCountCopy + x)) {
-            CounterCell a; long v; int m;
-            boolean uncontended = true;
-            if (as == null || (m = as.length - 1) < 0 ||
-                (a = as[ThreadLocalRandom.getProbe() & m]) == null ||
-                !(uncontended =
-                  U.compareAndSwapLong(a, CELLVALUE, v = a.value, v + x))) {
+        
+        // 先尝试用直接在baseCount计数，如果CAS更新失败则利用counterCells分散热点计数
+        if ((countCellCopy = counterCells) != null || !U.compareAndSwapLong(this, BASECOUNT, baseCountCopy = baseCount, expectedBaseCount = baseCountCopy + x)) {
+            CounterCell a; // a变量记录当前线程需要使用的
+            long v; // a.value，代表cell当时值的快照，配合下面CAS更新使用
+            int m; // 等于counterCells.length - 1，作为计算a所在counterCells下标的模数
+            boolean uncontended = true; // 记录CAS更新counterCell时的结果
+            // CAS更新CounterCell的value，尝试记录长度变更
+            if (countCellCopy == null || (m = countCellCopy.length - 1) < 0 || (a = countCellCopy[ThreadLocalRandom.getProbe() & m]) == null || !(uncontended = U.compareAndSwapLong(a, CELLVALUE, v = a.value, v + x))) {
+            	// 如果更新CounterCell失败，则进入自旋更新阶段。
                 fullAddCount(x, uncontended);
                 return;
             }
-            if (check <= 1)
+            // XXX
+            if (check <= 1) {
                 return;
+            }
+            // 求ConcurrentHashMap中节点总数=BaseCount + Sum(CounterCell.value)
             expectedBaseCount = sumCount();
         }
         if (check >= 0) {
