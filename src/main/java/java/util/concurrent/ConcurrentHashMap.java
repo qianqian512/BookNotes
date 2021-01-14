@@ -1033,8 +1033,9 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     break;                   
                 }
             }
-            // 3.如果新增的key落入的槽位正处于迁移状态？还是扩容状态，则无法进行插入，进而选择了helpTransfer XXX
+            // 3.如果新增的key落入的槽位正处于迁移状态？还是扩容状态，则无法进行插入，进而选择了帮助扩容
             else if ((nodeHashOrState = node.hash) == MOVED) {
+            	// TODO 
                 tab = helpTransfer(tab, node);
             } 
             // 4.如果落入的槽位不处于上面的状态，则可以对当前槽位进行插入操作（或是追加到链表尾部，或是插入到红黑树中）
@@ -1069,6 +1070,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                         // 4.1.2 如果当前槽位节点过多，已经使用红黑树存储，则将k-v作为子节点插入到树中。
                         else if (node instanceof TreeBin) {
                             Node<K,V> p;
+                            // binCount=2代表，当前槽位存储结构已经用红黑树，因此标记为2，在下面step5时，不用进行树化
                             binCount = 2;
                             if ((p = ((TreeBin<K,V>)node).putTreeVal(hash, key, value)) != null) {
                                 oldVal = p.val;
@@ -1079,6 +1081,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                         }
                     }
                 }
+                // 5.判断是否要将链表树化
                 if (binCount != 0) {
                 	// 如果链表中的节点超过阈值，则需要进行树化
                     if (binCount >= TREEIFY_THRESHOLD) {
@@ -1091,6 +1094,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 }
             }
         }
+        // addCount内部不光记录了Map数量+1,同时还隐含了扩容流程在里面
         addCount(1L, binCount);
         return null;
     }
@@ -2265,7 +2269,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                         Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[tableNeedInitLen];
                         // 刷新主存的table
                         table = tabbleCopy = nt;
-                        // TODO ???
+                        // XXX ???
                         sizeCtlCopy = tableNeedInitLen - (tableNeedInitLen >>> 2);
                     }
                 } finally {
@@ -2284,14 +2288,19 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * perform transfer if work is available.  Rechecks occupancy
      * after a transfer to see if another resize is already needed
      * because resizings are lagging additions.
+     * 
+     * 如果table比较小，还无需扩容时，则只是计数+1即可。如果table处于扩容中，
+     * 调用该方法的线程则帮忙一起扩容。
      *
      * @param x the count to add
      * @param check if <0, don't check resize, if <= 1 only check if uncontended
      */
     private final void addCount(long x, int check) {
-        CounterCell[] as; long b, s;
+        CounterCell[] as; 
+        long baseCountCopy; // 原变量b：代表baseCount的副本 
+        long expectedBaseCount; // 原变量x：代表执行addCount后baseCount的新值
         if ((as = counterCells) != null ||
-            !U.compareAndSwapLong(this, BASECOUNT, b = baseCount, s = b + x)) {
+            !U.compareAndSwapLong(this, BASECOUNT, baseCountCopy = baseCount, expectedBaseCount = baseCountCopy + x)) {
             CounterCell a; long v; int m;
             boolean uncontended = true;
             if (as == null || (m = as.length - 1) < 0 ||
@@ -2303,11 +2312,11 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             }
             if (check <= 1)
                 return;
-            s = sumCount();
+            expectedBaseCount = sumCount();
         }
         if (check >= 0) {
             Node<K,V>[] tab, nt; int n, sc;
-            while (s >= (long)(sc = sizeCtl) && (tab = table) != null &&
+            while (expectedBaseCount >= (long)(sc = sizeCtl) && (tab = table) != null &&
                    (n = tab.length) < MAXIMUM_CAPACITY) {
                 int rs = resizeStamp(n);
                 if (sc < 0) {
@@ -2321,7 +2330,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 else if (U.compareAndSwapInt(this, SIZECTL, sc,
                                              (rs << RESIZE_STAMP_SHIFT) + 2))
                     transfer(tab, null);
-                s = sumCount();
+                expectedBaseCount = sumCount();
             }
         }
     }
@@ -2331,14 +2340,15 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      */
     final Node<K,V>[] helpTransfer(Node<K,V>[] tab, Node<K,V> f) {
         Node<K,V>[] nextTab; int sc;
-        if (tab != null && (f instanceof ForwardingNode) &&
-            (nextTab = ((ForwardingNode<K,V>)f).nextTable) != null) {
+        // 如果当前
+        if (tab != null && (f instanceof ForwardingNode) && (nextTab = ((ForwardingNode<K,V>)f).nextTable) != null) {
+        	// XXX
             int rs = resizeStamp(tab.length);
-            while (nextTab == nextTable && table == tab &&
-                   (sc = sizeCtl) < 0) {
-                if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 ||
-                    sc == rs + MAX_RESIZERS || transferIndex <= 0)
+            // 如果处于扩容中
+            while (nextTab == nextTable && table == tab && (sc = sizeCtl) < 0) {
+                if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 || sc == rs + MAX_RESIZERS || transferIndex <= 0) {
                     break;
+                }
                 if (U.compareAndSwapInt(this, SIZECTL, sc, sc + 1)) {
                     transfer(tab, nextTab);
                     break;
