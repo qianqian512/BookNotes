@@ -2322,20 +2322,21 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
         if (check >= 0) {
             Node<K,V>[] tab, nt; int n, sc;
-            while (expectedBaseCount >= (long)(sc = sizeCtl) && (tab = table) != null &&
-                   (n = tab.length) < MAXIMUM_CAPACITY) {
+            // 如果当前Map中节点总数超过了阈值，则需要进行扩容
+            while (expectedBaseCount >= (long)(sc = sizeCtl) && (tab = table) != null && (n = tab.length) < MAXIMUM_CAPACITY) {
+            	// XXX ?
                 int rs = resizeStamp(n);
                 if (sc < 0) {
-                    if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 ||
-                        sc == rs + MAX_RESIZERS || (nt = nextTable) == null ||
-                        transferIndex <= 0)
+                    if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 || sc == rs + MAX_RESIZERS || (nt = nextTable) == null || transferIndex <= 0) {
                         break;
-                    if (U.compareAndSwapInt(this, SIZECTL, sc, sc + 1))
+                    }
+                    if (U.compareAndSwapInt(this, SIZECTL, sc, sc + 1)) {
                         transfer(tab, nt);
+                    }
                 }
-                else if (U.compareAndSwapInt(this, SIZECTL, sc,
-                                             (rs << RESIZE_STAMP_SHIFT) + 2))
+                else if (U.compareAndSwapInt(this, SIZECTL, sc, (rs << RESIZE_STAMP_SHIFT) + 2)) {
                     transfer(tab, null);
+                }
                 expectedBaseCount = sumCount();
             }
         }
