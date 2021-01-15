@@ -2301,6 +2301,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         long baseCountCopy; // 原变量b：代表baseCount的副本 
         long expectedBaseCount; // 原变量x：代表执行addCount后baseCount的新值
         
+        /************************************ 计数 **********************************************/
         // 先尝试用直接在baseCount计数，如果CAS更新失败则利用counterCells分散热点计数
         if ((countCellCopy = counterCells) != null || !U.compareAndSwapLong(this, BASECOUNT, baseCountCopy = baseCount, expectedBaseCount = baseCountCopy + x)) {
             CounterCell a; // a变量记录当前线程需要使用的
@@ -2320,23 +2321,34 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             // 求ConcurrentHashMap中节点总数=BaseCount + Sum(CounterCell.value)
             expectedBaseCount = sumCount();
         }
+        /************************************ 扩容 **********************************************/
         if (check >= 0) {
-            Node<K,V>[] tab, nt; int n, sc;
+            Node<K,V>[] tab, nt; int n;
+            int sizeCtlCopy; // 原sc变量
             // 如果当前Map中节点总数超过了阈值，则需要进行扩容
-            while (expectedBaseCount >= (long)(sc = sizeCtl) && (tab = table) != null && (n = tab.length) < MAXIMUM_CAPACITY) {
+            while (expectedBaseCount >= (long)(sizeCtlCopy = sizeCtl) && (tab = table) != null && (n = tab.length) < MAXIMUM_CAPACITY) {
             	// XXX ?
                 int rs = resizeStamp(n);
-                if (sc < 0) {
-                    if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 || sc == rs + MAX_RESIZERS || (nt = nextTable) == null || transferIndex <= 0) {
+                // sizeCtl小于0代表处于扩容中(代码走到这里，则当先前程是帮忙扩容)
+                if (sizeCtlCopy < 0) {
+                	/************************ 当满足这些条件时不进行扩容 ******************************/
+                	// 如果 sc 的高 16 位不等于 标识符（校验异常 sizeCtl 变化了）
+                    // 如果 sc == 标识符 + 1 （扩容结束了，不再有线程进行扩容）（默认第一个线程设置 sc ==rs 左移 16 位 + 2，当第一个线程结束扩容了，就会将 sc 减一。这个时候，sc 就等于 rs + 1）
+                    // 如果 sc == 标识符 + 65535（帮助线程数已经达到最大）
+                    // 如果 nextTable == null（结束扩容了）
+                    if ((sizeCtlCopy >>> RESIZE_STAMP_SHIFT) != rs || sizeCtlCopy == rs + 1 || sizeCtlCopy == rs + MAX_RESIZERS || (nt = nextTable) == null || transferIndex <= 0) {
                         break;
                     }
-                    if (U.compareAndSwapInt(this, SIZECTL, sc, sc + 1)) {
+                    // sizeCtl低16位代表正在扩容的线程数，如果当前线程能竞争成功，则进入扩容逻辑
+                    if (U.compareAndSwapInt(this, SIZECTL, sizeCtlCopy, sizeCtlCopy + 1)) {
                         transfer(tab, nt);
                     }
                 }
-                else if (U.compareAndSwapInt(this, SIZECTL, sc, (rs << RESIZE_STAMP_SHIFT) + 2)) {
+                // 如果当前Map没有扩容，则更新sizeCtl值，更新扩容初始化状态，并进行扩容逻辑(代码走到这里，一般是当前线程触发了扩容)
+                else if (U.compareAndSwapInt(this, SIZECTL, sizeCtlCopy, (rs << RESIZE_STAMP_SHIFT) + 2)) {
                     transfer(tab, null);
                 }
+                // 扩容后计算一下Map中元素的个数，通过下次自旋判断是否需要再次扩容
                 expectedBaseCount = sumCount();
             }
         }
