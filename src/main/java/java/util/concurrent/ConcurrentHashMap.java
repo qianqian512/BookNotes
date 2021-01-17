@@ -2302,7 +2302,13 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         long expectedBaseCount; // 原变量x：代表执行addCount后baseCount的新值
         
         /************************************ 计数 **********************************************/
-        // 先尝试用直接在baseCount计数，如果CAS更新失败则利用counterCells分散热点计数
+        /**
+         * 1.先尝试用CAS竞争，直接在baseCount计数，Map元素数量+1
+         *  1.1竞争成功则到下面，判断是否需要扩容
+         *  1.2写BaseCont竞争失败，尝试在CounterCell中计数
+         *  1.2.1写CounterCell失败，则进入fullAddCount方法，自旋再次尝试修改元素数量
+         */
+        // 先尝试用直接在baseCount计数
         if ((countCellCopy = counterCells) != null || !U.compareAndSwapLong(this, BASECOUNT, baseCountCopy = baseCount, expectedBaseCount = baseCountCopy + x)) {
             CounterCell a; // a变量记录当前线程需要使用的
             long v; // a.value，代表cell当时值的快照，配合下面CAS更新使用
@@ -2322,6 +2328,14 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             expectedBaseCount = sumCount();
         }
         /************************************ 扩容 **********************************************/
+        /**
+         * 1.自旋判断是否满足扩容条件
+         * 2.计算「扩容标识戳」
+         * 3.判断是否已经触发了扩容
+         *  3.1如果当前Map实例正在扩容中(sizeCtl<0)，则校验当前线程是否满足扩容条件
+         *  3.2如果当前Map实例处于正常使用状态，则尝试用CAS竞争触发扩容
+         * 4.扩容完成后，重新计算当前Map中的元素数量，然后回到自旋1，判断是否需要再次扩容
+         */
         if (check >= 0) {
             Node<K,V>[] tab, nt; int n;
             int sizeCtlCopy; // 原sc变量
@@ -2429,15 +2443,22 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * above for explanation.
      */
     private final void transfer(Node<K,V>[] tab, Node<K,V>[] nextTab) {
-        int n = tab.length, stride;
-        if ((stride = (NCPU > 1) ? (n >>> 3) / NCPU : n) < MIN_TRANSFER_STRIDE)
+        int n = tab.length; // 迁移前map中一共有多少个槽位
+        int stride; // 当前线程需要迁移map中槽位的个数
+        if ((stride = (NCPU > 1) ? (n >>> 3) / NCPU : n) < MIN_TRANSFER_STRIDE) {
             stride = MIN_TRANSFER_STRIDE; // subdivide range
+        }
         if (nextTab == null) {            // initiating
             try {
                 @SuppressWarnings("unchecked")
                 Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n << 1];
                 nextTab = nt;
             } catch (Throwable ex) {      // try to cope with OOME
+            	/*
+            	 * 这里唯一可能抛出的异常应该是java.lang.OutOfMemoryError，如果内存不够时，不再尝试划分更多槽位的Map去存，而还是基于原Map继续追加节点，
+            	 * 这种做法虽然会导致Hash碰撞会多，效率变低，到至少保证Map还可正常使用。 
+            	 * sizeCtl = Integer.MAX_VALUE，意味着以后也不会再触发扩容了。
+            	 */
                 sizeCtl = Integer.MAX_VALUE;
                 return;
             }
@@ -2446,27 +2467,38 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
         int nextn = nextTab.length;
         ForwardingNode<K,V> fwd = new ForwardingNode<K,V>(nextTab);
-        boolean advance = true;
-        boolean finishing = false; // to ensure sweep before committing nextTab
+        boolean advance = true; // 是否需要继续迁移
+        boolean finishing = false; // 当前线程的迁移工作是否完成 to ensure sweep before committing nextTab
+        /**
+         * 这个自旋用来从将数组的元素从右向左迁移至全部完成。
+         */
         for (int i = 0, bound = 0;;) {
             Node<K,V> f; int fh;
             while (advance) {
                 int nextIndex, nextBound;
-                if (--i >= bound || finishing)
+                // 迁移到边界，或已完成，则退出
+                if (--i >= bound || finishing) {
                     advance = false;
+                }
+                // 如果没有可迁移的区间，则退出
                 else if ((nextIndex = transferIndex) <= 0) {
                     i = -1;
                     advance = false;
                 }
-                else if (U.compareAndSwapInt
-                         (this, TRANSFERINDEX, nextIndex,
-                          nextBound = (nextIndex > stride ?
-                                       nextIndex - stride : 0))) {
+                // 确定当前线程迁移起点，并更新到Map中的TRANSFERINDEX，告诉其他线程这段区间的迁移工作，已经被当前线程认领
+                else if (U.compareAndSwapInt(this, TRANSFERINDEX, nextIndex, nextBound = (nextIndex > stride ? nextIndex - stride : 0))) {
                     bound = nextBound;
                     i = nextIndex - 1;
                     advance = false;
+                } else {
+                	// 代码走到这里，一般是CAS竞争更新失败，自旋再来一次
                 }
             }
+            /**
+             * 自旋退出条件判断
+             * 
+             * XXX 下面注释待补充
+             */
             if (i < 0 || i >= n || i + n >= nextn) {
                 int sc;
                 if (finishing) {
@@ -2476,23 +2508,45 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     return;
                 }
                 if (U.compareAndSwapInt(this, SIZECTL, sc = sizeCtl, sc - 1)) {
-                    if ((sc - 2) != resizeStamp(n) << RESIZE_STAMP_SHIFT)
+                    if ((sc - 2) != resizeStamp(n) << RESIZE_STAMP_SHIFT) {
                         return;
+                    }
                     finishing = advance = true;
                     i = n; // recheck before commit
                 }
             }
-            else if ((f = tabAt(tab, i)) == null)
+            // 如果当前槽位上没有节点，则直接判定为当前槽位迁移结束，并使用一个Fwd节点占用Old槽位，Fwd节点引用了NewMap，这种做法可以将对原Map的请求直接打入到NewMap
+            else if ((f = tabAt(tab, i)) == null) {
                 advance = casTabAt(tab, i, null, fwd);
-            else if ((fh = f.hash) == MOVED)
+            } 
+            // 如果当前槽位存在节点，并已经是一个Fwd节点(只有Fwd节点的hash才等于MOVE)，则继续向左推进迁移
+            else if ((fh = f.hash) == MOVED) {
                 advance = true; // already processed
+            } 
+            // 如果当前槽位存在的是普通数据节点(链表或TreeBin)，则开始进行迁移工作
             else {
+            	// 加锁，迁移过程中，不允许对该节点进行写操作
                 synchronized (f) {
+                	// 临界区内二次判断，数据节点是否发生了改变
                     if (tabAt(tab, i) == f) {
-                        Node<K,V> ln, hn;
+                        Node<K,V> ln, hn; 
+                        // fh大于0，代表要迁移的是一个链表节点
+                       /**
+                        * 在链表迁移过程中，数组会扩容一倍大小，且当前槽位的节点满足这样一个规律：
+                        *   在resize后的hash或是不变，或是变成了n+i(n代表原数组长度，i代表槽位在元数组下标位置)
+                        *   以长度为8，存储元素[12, 28, 36, 52, 4, 20, 68, 84]的int数组为例，其hash值全部为4，
+                        *   在经过一次扩容，数组长度升为8后，存储元素的hash值无非就是4或12(12=4+8)
+                        * 基于上面的规律，推到出当前槽位下的链表节点在扩容后，只会被重新分配到2个槽位，一个位置是i，
+                        * 另一个位置是n+i。
+                        **/
                         if (fh >= 0) {
                             int runBit = fh & n;
+                            /**
+                             * 关于lastRun的用途：找到最后几个hash值相同的节点，减少迁移工作，因为他们具备相同的
+                             * hash值，因此迁移后也一定在同一个链表上
+                             */
                             Node<K,V> lastRun = f;
+                            // 寻找lastRun节点
                             for (Node<K,V> p = f.next; p != null; p = p.next) {
                                 int b = p.hash & n;
                                 if (b != runBit) {
@@ -2500,6 +2554,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                     lastRun = p;
                                 }
                             }
+                            // 定义高位和低位规则标准
                             if (runBit == 0) {
                                 ln = lastRun;
                                 hn = null;
@@ -2508,6 +2563,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                 hn = lastRun;
                                 ln = null;
                             }
+                            // 根据高低位规则，将原槽位链表的节点，拆分出高位链表和低位链表
                             for (Node<K,V> p = f; p != lastRun; p = p.next) {
                                 int ph = p.hash; K pk = p.key; V pv = p.val;
                                 if ((ph & n) == 0)
@@ -2515,11 +2571,14 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                 else
                                     hn = new Node<K,V>(ph, pk, pv, hn);
                             }
+                            // 将高低位2个新链表，放到新Map的槽位上
                             setTabAt(nextTab, i, ln);
                             setTabAt(nextTab, i + n, hn);
+                            // 当前槽位迁移完成，将原Map迁移完的槽位标记为Foward节点
                             setTabAt(tab, i, fwd);
                             advance = true;
                         }
+                        // 如果要迁移的节点是一个红黑树对象
                         else if (f instanceof TreeBin) {
                             TreeBin<K,V> t = (TreeBin<K,V>)f;
                             TreeNode<K,V> lo = null, loTail = null;
@@ -2572,6 +2631,9 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         CounterCell(long x) { value = x; }
     }
 
+    /**
+     * @return sum(CountCell[]) + baseCount
+     */
     final long sumCount() {
         CounterCell[] as = counterCells; CounterCell a;
         long sum = baseCount;
