@@ -30,6 +30,9 @@
 
 > 使用原则：写入变量不依赖此变量的值，或者只有一个线程修改此变量
 
+> 【如何保证数组中值的可见性】   
+> 获取时，通过Unsafe.getVolatileObject获取，可以拿到最新对象的最新值。set时，也需要通过Unsafe.cas设置值。这其实是Java的一个坑，因为在数组的值没有volatile修饰符导致
+
 ####关于synchronized
 > 【原理】JVM会针对被synchronized修饰的代码，隐形的插入monitorenter和monitorexit指令，当jvm执行到monitorenter指令时，当前线程试图获取monitor对象(依赖底层操作系统的Mutex Lock)的所有权，如果未加锁或者已经被当前线程所持有，就把锁的计数器+1；当执行monitorexit指令时，锁计数器-1；当锁计数器为0时，该锁就被释放了。如果获取monitor对象失败，该线程则会进入阻塞状态，直到其他线程释放锁。  
 > 【关于对象头】synchronized用的锁存在Java对象头中，主要存了锁的级别（轻量级锁、重量级锁、偏向锁），以及锁记录指针。

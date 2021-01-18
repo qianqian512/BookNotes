@@ -41,7 +41,6 @@ import java.lang.reflect.Type;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -50,14 +49,11 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.Spliterator;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
-import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.DoubleBinaryOperator;
 import java.util.function.Function;
@@ -933,18 +929,23 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     public V get(Object key) {
         Node<K,V>[] tab; Node<K,V> e, p; int n, eh; K ek;
         int h = spread(key.hashCode());
-        if ((tab = table) != null && (n = tab.length) > 0 &&
-            (e = tabAt(tab, (n - 1) & h)) != null) {
+        // 计算key的hash值
+        if ((tab = table) != null && (n = tab.length) > 0 && (e = tabAt(tab, (n - 1) & h)) != null) {
+        	// 如果槽位上的第一个节点和要找的key相同，直接返回不再向下遍历寻找
             if ((eh = e.hash) == h) {
-                if ((ek = e.key) == key || (ek != null && key.equals(ek)))
+                if ((ek = e.key) == key || (ek != null && key.equals(ek))) {
                     return e.val;
+                }
             }
-            else if (eh < 0)
+            // 在红黑树上查找
+            else if (eh < 0) {
                 return (p = e.find(h, key)) != null ? p.val : null;
+            }
+            // 在链表上查找
             while ((e = e.next) != null) {
-                if (e.hash == h &&
-                    ((ek = e.key) == key || (ek != null && key.equals(ek))))
+                if (e.hash == h && ((ek = e.key) == key || (ek != null && key.equals(ek)))) {
                     return e.val;
+                }
             }
         }
         return null;
@@ -2441,6 +2442,11 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     /**
      * Moves and/or copies the nodes in each bin to new table. See
      * above for explanation.
+     * 
+     * 迁移
+     *   1.扩容，分配更大的Map
+     *   2.计算线程分配槽位下标边界值
+     *   3.从右向左迁移元素，迁移时区分链表节点和红黑树
      */
     private final void transfer(Node<K,V>[] tab, Node<K,V>[] nextTab) {
         int n = tab.length; // 迁移前map中一共有多少个槽位
@@ -2448,6 +2454,9 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         if ((stride = (NCPU > 1) ? (n >>> 3) / NCPU : n) < MIN_TRANSFER_STRIDE) {
             stride = MIN_TRANSFER_STRIDE; // subdivide range
         }
+        /**
+         * 扩容第一步，分配内存空间，创建一个更大的table
+         */
         if (nextTab == null) {            // initiating
             try {
                 @SuppressWarnings("unchecked")
@@ -2471,6 +2480,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         boolean finishing = false; // 当前线程的迁移工作是否完成 to ensure sweep before committing nextTab
         /**
          * 这个自旋用来从将数组的元素从右向左迁移至全部完成。
+         *   1.根据CPU和Map长度，计算当前线程要迁移槽位的边界值
+         *   2.迁移数据节点
          */
         for (int i = 0, bound = 0;;) {
             Node<K,V> f; int fh;
@@ -2496,8 +2507,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             }
             /**
              * 自旋退出条件判断
-             * 
-             * XXX 下面注释待补充
              */
             if (i < 0 || i >= n || i + n >= nextn) {
                 int sc;
@@ -2571,23 +2580,26 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                 else
                                     hn = new Node<K,V>(ph, pk, pv, hn);
                             }
-                            // 将高低位2个新链表，放到新Map的槽位上
+                            // 将高低位2个新链表，放到新Map对应的槽位上
                             setTabAt(nextTab, i, ln);
                             setTabAt(nextTab, i + n, hn);
                             // 当前槽位迁移完成，将原Map迁移完的槽位标记为Foward节点
                             setTabAt(tab, i, fwd);
                             advance = true;
                         }
-                        // 如果要迁移的节点是一个红黑树对象
+                        /**
+                         * 如果要迁移的节点是一个红黑树对象，迁移过程和链表类似，也是区分出高低位红黑树，
+                         * 然后再放入到新Map之前，考虑新拆出的2个红黑树是否需要退化成链表。
+                         */
                         else if (f instanceof TreeBin) {
                             TreeBin<K,V> t = (TreeBin<K,V>)f;
                             TreeNode<K,V> lo = null, loTail = null;
                             TreeNode<K,V> hi = null, hiTail = null;
                             int lc = 0, hc = 0;
+                            // 区分高低位拆分红黑树
                             for (Node<K,V> e = t.first; e != null; e = e.next) {
                                 int h = e.hash;
-                                TreeNode<K,V> p = new TreeNode<K,V>
-                                    (h, e.key, e.val, null, null);
+                                TreeNode<K,V> p = new TreeNode<K,V>(h, e.key, e.val, null, null);
                                 if ((h & n) == 0) {
                                     if ((p.prev = loTail) == null)
                                         lo = p;
@@ -2605,12 +2617,13 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                     ++hc;
                                 }
                             }
-                            ln = (lc <= UNTREEIFY_THRESHOLD) ? untreeify(lo) :
-                                (hc != 0) ? new TreeBin<K,V>(lo) : t;
-                            hn = (hc <= UNTREEIFY_THRESHOLD) ? untreeify(hi) :
-                                (lc != 0) ? new TreeBin<K,V>(hi) : t;
+                            // 判断高低位树是否还需要维持树化状态，不需要的话就退化成链表即可。
+                            ln = (lc <= UNTREEIFY_THRESHOLD) ? untreeify(lo) : (hc != 0) ? new TreeBin<K,V>(lo) : t;
+                            hn = (hc <= UNTREEIFY_THRESHOLD) ? untreeify(hi) : (lc != 0) ? new TreeBin<K,V>(hi) : t;
+                            // 将高低位2个新的红黑树，放到新Map对应的槽位上
                             setTabAt(nextTab, i, ln);
                             setTabAt(nextTab, i + n, hn);
+                            // 当前槽位迁移完成，将原Map迁移完的槽位标记为Foward节点
                             setTabAt(tab, i, fwd);
                             advance = true;
                         }

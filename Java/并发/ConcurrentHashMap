@@ -93,25 +93,35 @@ TreeBin有一个state字段，每个线程读数据之前，都有会CAS将state
 ####如果TreeBin处于写操作(state=1)，有读线程来了怎么办？
 TreeBin内部维护两个存储结构，一个是Tree本身，还有是链表结构，此时因为Tree可能存在调整，因此会将读请求转发到链表上去
 
-####采用什么样的扩容机制？是先为每个线程分配好要迁移的槽位？还是线程一个槽一个槽的迁移，迁移完后再竞争迁移下一个。
->
+####采用什么样的扩容机制？
+> 为每个线程分配好要迁移的槽位
 
 ####细节部分
 sizeCtl扩容算法学习
 
+####get时为什么可以不加锁，如何保证线程安全
 
 ####整个CMap分为几块学习：
 1.put
   (√)链表put   
   tree.put
-  (-)扩容
-  计数
+  (√)扩容
+  (√)计数
   树化
   
-2.get
-  链表get时是否可以put
-  tree put时是否可以get
+2.get (√)
+  
 
+####并发冲突
 
+链表				put			get			transfer		
+put				 
+get							 
+transfer								
+
+红黑树			put			get			transfer
+put
+get
+transfer
 
 https://www.cnblogs.com/ylspace/p/12726672.html
