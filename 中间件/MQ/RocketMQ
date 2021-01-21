@@ -1,0 +1,16 @@
+####
+
+#### 如果检测到Broker宕机，NameServer并不会立刻通知Producer，这是为什么？
+
+#### RocketMQ线程模型
+
+#### NameServer启动流程
+> 1.读取配置  
+> 2.创建NameServer控制器（都能控制啥？）
+> 3.创建NettyServer，然后开启2个定时任务，一个用于对Broker的弹活，一个负责记录KV配置（KV配置中有什么）。
+> 4.注册JVM钩子，监听JVM退出事件(Runtime.getRuntime().addShutdownHook())。
+
+#### NameServer注册流程
+> 1.Broker和NameServer是通过heartbeat机制实现注册的。Broker启动后每隔30s会向所有的NameServer发送heartbeat包
+> 2.NameServer收到的heartbeat后，会更新自身的livedBrokerTable中该Broker对应的lastUpdateTime，更新最后一次收到的心跳时间
+> 3.NameServer每隔10s会扫描一次livdBrokerTable，检测超过120s没有更新的Broker，发现后将其移出队列，并关闭Socket连接。

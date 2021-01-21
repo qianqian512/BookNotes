@@ -3,7 +3,6 @@ M2 - 中间件
 
 
 TODO
-1.CMAP整理：https://www.cnblogs.com/ylspace/p/12726672.html
 2.ThreadLocal里的Entry为什么会被定义成WeakReference
 
 	static class ThreadLocal2<T> {
