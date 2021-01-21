@@ -10,7 +10,25 @@
 > 3.创建NettyServer，然后开启2个定时任务，一个用于对Broker的弹活，一个负责记录KV配置（KV配置中有什么）。
 > 4.注册JVM钩子，监听JVM退出事件(Runtime.getRuntime().addShutdownHook())。
 
-#### NameServer注册流程
+#### NameServer探活流程
 > 1.Broker和NameServer是通过heartbeat机制实现注册的。Broker启动后每隔30s会向所有的NameServer发送heartbeat包
 > 2.NameServer收到的heartbeat后，会更新自身的livedBrokerTable中该Broker对应的lastUpdateTime，更新最后一次收到的心跳时间
 > 3.NameServer每隔10s会扫描一次livdBrokerTable，检测超过120s没有更新的Broker，发现后将其移出队列，并关闭Socket连接。
+
+#### NameServer注册流程
+> 1.判断Broker所属的cluster是否存在，若不存在则先创建cluster，然后将Broker放入其中（RouteInfoManager.java）。
+> 2.维护BrokerData信息，将BrokerData信息放入到brokerAddrTable中（brokerAddrTable记录了broker的基本信息，包括名字，所属集群，主备地址）
+> 3.如果注册的是一个MasterBroker，填充到topicQueueTable中，为默认主题创建路由信息；如果是一个Slave节点，则找到对应的MasterBroker，并更新masterAddr属性
+> 4.更新Broker的存活时间
+> 5.注册Broker过滤器的Server地址列表？
+
+#### NameServer删除流程
+> 触发点有2个：① NameServer内部定时扫描，踢除超过120s无heartbeat的Broker；② Broker正常关闭时会请求NameServer，调用unregisterBroker。
+> 1.申请写锁
+> 2.删除Broker节点的信息
+> 3.将要删除的Broker从cluster中踢除
+> 4.将要删除的Broker从对应的Topic中踢除
+> 5.释放写锁
+
+#### NameServer路由流程
+> NameServer的节点变动不会实时的push给客户端，而是等待它们主动来pull。（这么设计的好处是什么呢？）
