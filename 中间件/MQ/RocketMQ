@@ -2,11 +2,12 @@
 
 #### 如果检测到Broker宕机，NameServer并不会立刻通知Producer，这是为什么？
 
+
 #### RocketMQ线程模型
 
 #### NameServer启动流程
 > 1.读取配置  
-> 2.创建NameServer控制器（都能控制啥？）
+> 2.创建NameServer控制器【都能控制啥？】
 > 3.创建NettyServer，然后开启2个定时任务，一个用于对Broker的弹活，一个负责记录KV配置（KV配置中有什么）。
 > 4.注册JVM钩子，监听JVM退出事件(Runtime.getRuntime().addShutdownHook())。
 
@@ -31,4 +32,27 @@
 > 5.释放写锁
 
 #### NameServer路由流程
-> NameServer的节点变动不会实时的push给客户端，而是等待它们主动来pull。（这么设计的好处是什么呢？）
+> NameServer的节点变动不会实时的push给客户端，而是等待它们主动来pull。【这么设计的好处是什么呢？】
+
+#### MQ消息发送模式中，Asyn模式和Oneway模式的区别
+> Asyn发生完成后，会感知到成功或失败；【Asyn模式会明确知道发送结果，如果发送失败会再回调前再次重试】而Oneway模式不会感知。
+
+#### 消息队列如何实现负载
+
+#### 消息队列如何实现高可用
+
+#### 批量发送消息如何保证一致性
+
+#### RocketMQ中的Message结构
+> Message内部基本属性只有Topic、flag、properties和body四个字段，其中基本属性只有Topic和flag，其他类似tags、keys这些常用的属性放在properties中，真正的消息体内容存在body中。
+
+#### Producer启动流程(DefaultMQProducerImpl.start())
+> 1.基本校验：检查producerGroup是否符合要求，改变intanceName
+> 2.创建MQClientInstance实例，并注册到MQClientManager中
+> 3.启动MQClientInstance 【MQClientInstance的启动流程留个FollowUp】
+
+#### Producer发送消息基本流程（DefautlMQProducer.sendMessage）【TODO】
+> 1.消息验证：必填字段非空校验，例如Topic和消息体不能为空，消息长度小于4M，检查Producer的运行状态。
+> 2.查找路由Topic信息：先判断本地缓存中是否有Topic缓存信息，如果没有则到NameServer查询【P58，还有一些细节不懂，先跳过】。
+> 3.选择路由消息队列
+> 4.进行发送（区分同步、异步、单向）
