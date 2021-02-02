@@ -87,3 +87,18 @@ Dubbo中AbstractRegister实现了注册中心通用的缓存机制，客户端�
 #### Dubbo是如何与Spring容器打通的
 AdaptiveExtensionFactory作为ExtensionLoader的默认实现，内部实际是管理者Dubbo容器(SpiExtensionLoader)和Spring容器(SpringExtensionLoader)。
 在调用getExtension方法时，会通过TreeSet排序存储，SPI的排在前面，Spring的在后
+
+
+#### Dubbo发布详细过程
+1.解析加载配置，xsd文件定义了xml配置的语法结构，借助spring的handler文件+NameSpaceHandler将配置解析成Java对象，形成RootBeanDefinition。
+2.BeanDefinition解析成ServiceConfig（怎么转的，中间用到了哪些类？）
+3.ServiceConfig根据配置中定义的export协议，依次暴露服务（参见doExport方法）
+4.将ServiceConfig内部的配置，ProtocolConfig对象和Registry构建成dubboUrl的参数，至此会将一个即将对外暴露的Service的所有配置都会存到url上。
+5.通过ProxyFactory将ServiceConfig对象和上部组装的url，生成Invoker对象。
+6.再将Invoker对象根据协议发布成Exporter；如果存在注册中心，则获取注册中心url，并将registryUrl作为参数，之前生成的url作为registryUrl的子参数传给Exporter发布服务。 
+7.【注册中心Export部分】创建NettyServer监听端口
+8.【注册中心Export部分】创建注册中心对象，与注册中心建立TCP连接，同时监听configuration节点 
+9.【注册中心Export部分】将服务注册到注册中心，告知订阅者可用
+
+#### Dubbo服务调用拦截时用到的Filter，Listener都是在哪里初始化的？
+参见P102页
