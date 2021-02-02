@@ -27,13 +27,13 @@
 
 
 
-####Dubbo发布过程
+#### Dubbo发布过程
 1.框架启动时，先实例化服务对象
 2.铜鼓Proxy组件调用具体协议Protocol，将服务实例包装成Invoker对象
 3.发布Invoker对象，将Invoker抓成Exporter
 4.通过Registry将Exporter上的元数据注册到注册中心
 
-####Dubbo调用过程
+#### Dubbo调用过程
 1.调用API的Proxy对象，其Proxy内部也是持有一个Invoker对象
 2.从Cluster内部中根据LoadBalance选择其中一个远端的Invoker对象
 3.触发Invoker调用时会经历本地的InvokerChain，例如限流，计数等
@@ -43,31 +43,47 @@
 7.转成Request对象后分配到业务线程池处理，根据Request找到对应的Exporter
 8.Exporter内部持有Invoker对象，这里又会进行一次InvokerChain调用。
 
-####Dubbo在注册中心上4个节点类型
+#### Dubbo在注册中心上4个节点类型
 providers
 consumers
 configurations
 Routers
 
-####Dubbo订阅的实现
+#### Dubbo订阅的实现
 Dubbo采用第一次启动拉取方式，后续采用监听事件重新拉取数据的方式。
 1.在客户端第一次建立连接时，会获取对应目录下的全量数据
 2.并在订阅节点上注册一个watcher
 3.当watcher发现数据变化时，注册中心会根据watcher找到订阅的客户端并通知
 4.客户端收到通知后，会把节点下的全量数据全部重新拉取一遍（为什么要这么做？参考NotifyListener#notify的注释）
 
-####Dubbo注册中心缓存机制
+#### Dubbo注册中心缓存机制
 Dubbo中AbstractRegister实现了注册中心通用的缓存机制，客户端会将注册中心上的信息在本地cache一份，并保存在Properties对象中，同时也在硬盘上持久化一份
 
 
-####Dubbo为什么要自己实现一套扩展点
+#### Dubbo为什么要自己实现一套扩展点
 1.性能优化：避免一次性实例化所有实现，Dubbo扩展点会对Class和Instance两个维度进行缓存，且只有在使用时才会实例化
 2.SPI会吞异常：当SPI扩展点加载失败时，会吞掉真实异常，导致排查问题困难
 3.增加了对IOC和AOP的支持
 4.增加了Wrapper，Adaptive和Activate方式扩展
 
-####Dubbo扩展点特性
+#### Dubbo扩展点特性
 1.自动包装类：当ExtensionLoader在加载扩展时，如果发现要加载的扩展点的构造参数时其他扩展点时，则就会认为这个扩展点是一个Wrapper类
 2.自动注入：ExtensionLoader在加载扩展时，如果发现扩展点中的某个成员变量是扩展点类型，并也存在对应的set方法时，会将其自动注入，类似Spring的IOC功能
 3.自适应：通过DubboURL的参数来动态实现加载扩展点（一个扩展点的多个实现中，只能存在一个实现类标记@Adaptive）
 4.自动激活：根据参数，激活加载多个扩展点，形成链式调用，使用@Activate
+
+#### Dubbo中getExtension方法加载流程
+1.读取SPI对应路径下的配置文件，将所有的扩展点用到的Class缓存（无初始化）
+2.根据换入的名称初始化对应的扩展类
+3.实现setter注入（注入容器会优先使用SpiExtensionFactory，再查找SpringExtensionLoader）
+4.查找符合条件的Wrapper类，循环进行层层包装，最终返回Wrapper实例
+
+#### Dubbo中getAdaptive方法加载流程
+1.读取SPI对应路径下的配置文件，将所有的扩展点用到的Class缓存（无初始化）
+2.动态生成Adaptive实现类代码字符串
+3.通过ExtensionLoader获取Complier实现（默认的Complier是在class上标注@Adaptive的，因此这部分的代码不是通过Adaptive生成）
+4.返回Adaptive实现
+
+#### Dubbo是如何与Spring容器打通的
+AdaptiveExtensionFactory作为ExtensionLoader的默认实现，内部实际是管理者Dubbo容器(SpiExtensionLoader)和Spring容器(SpringExtensionLoader)。
+在调用getExtension方法时，会通过TreeSet排序存储，SPI的排在前面，Spring的在后
