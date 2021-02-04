@@ -1,5 +1,3 @@
-####
-
 #### 如果检测到Broker宕机，NameServer并不会立刻通知Producer，这是为什么？
 
 
@@ -56,3 +54,23 @@
 > 2.查找路由Topic信息：先判断本地缓存中是否有Topic缓存信息，如果没有则到NameServer查询【P58，还有一些细节不懂，先跳过】。
 > 3.选择路由消息队列
 > 4.进行发送（区分同步、异步、单向）
+
+#### RocketMQ在管理集群时为什么不用Zookeeper，而是采用NameServer
+
+#### RocketMQ为什么没有采用同步落盘方式，保证更高的可用性
+> 1.首先RocketMQ设计初衷时无状态模式，方便任意水平扩展，对机器消耗的只有CPU、内存、网络，不含硬盘IO（如果设计硬盘，性能会急剧下降）；  
+> 2.同步落盘性能消耗比异步落盘要大，会牺牲一部分吞吐量；
+> 3.Producer所在机器一般为VM，因此并不稳定，不适合存储重要数据，故即便落盘后也无法保证完全的高可用。
+
+#### RocketMQ采用pull的方式代替push，好处时什么？
+
+#### 零拷贝有哪两种方式，Rocket是如何选择的？
+> sendfile
+> mmap+write
+
+#### RocketMQ为什么选择的Ext4作为文件存储系统
+
+
+#### RocketMQ文件存储结构
+
+RocketMQ tags的坑：https://blog.csdn.net/Dome_/article/details/94584498
