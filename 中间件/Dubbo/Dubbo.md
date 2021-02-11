@@ -102,3 +102,7 @@ AdaptiveExtensionFactory作为ExtensionLoader的默认实现，内部实际是�
 
 #### Dubbo服务调用拦截时用到的Filter，Listener都是在哪里初始化的？
 参见P102页
+
+#### Dubbo的Injvm协议是干嘛用的？
+
+#### Dubbo消费者中是如何将多个注册中心转成一个Invoker的？
