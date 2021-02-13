@@ -1,0 +1,5 @@
+baidu=org.apache.dubbo.extensionloader.impl.BaiduUserServiceImpl
+tencent=org.apache.dubbo.extensionloader.impl.TencertUserServiceImpl
+alibaba=org.apache.dubbo.extensionloader.impl.AlibabaUserServiceImpl
+meituan=org.apache.dubbo.extensionloader.impl.MeituanUserServiceImpl
+jd=org.apache.dubbo.extensionloader.impl.JdUserServiceImpl

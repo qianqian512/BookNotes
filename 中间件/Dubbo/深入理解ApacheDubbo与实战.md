@@ -14,7 +14,7 @@
 > 4.支持Wrapper，对实现增强；以及通过Adapter和Activate注解动态返回实例对象。
 
 #### 4.1.3 扩展点的配置规范
-> 在META-INF/dubbo/、META-INF/services/、META-INF/internal目录下放置对应的SPI文件，文件名称为接口的全路径名称。文件内容以key=[接口实现的全路径名]进行配置。  
+> 在META-INF/dubbo/、META-INF/services/、META-INF/dubbo/internal目录下放置对应的SPI文件，文件名称为接口的全路径名称。文件内容以key=[接口实现的全路径名]进行配置。  
 >> <font color="blue">dubbo 2.6.5版本中的com.alibaba.dubbo.rpc.Protocol中打破了k-v的格式，此时没有key的实现如何通过ExtensionLoader加载呢？</font>
 
 #### 4.1.4 扩展点的分类与缓存
