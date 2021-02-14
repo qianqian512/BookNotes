@@ -77,12 +77,35 @@
 > 5.复用getExtension的injectExtension方法，对对象进行注入，但不会进行wrapper。  
 > (Adaptive生成的代码可以参考UserService$Adaptive.java)
 
+#### 4.3.4 getActivate实现原理
+> 
 
+#### 4.3.5 ExtensionFactory实现原理
+> ExtensionFactory扩展点有3个实现，分别是SPI、Spring和Adaptive版本，其中Adaptive的class上使用@Adaptive修饰，意为ExtensionFactory默认的自适应实现。而AdaptiveExtensionFactory内部动态维护了其他ExtensionFactory扩展点的实现，在getExtension时会根据name遍历查找每个容器，从而将Dubbo和Spring打通。  
+> Spring容器是什么时候被初始化的呢？其实是依赖Dubbo中的ServiceBean和ReferenceBean的事件初始化的，即一个服务被export或被reference的时候，会被Spring上下文保存到容器中。  
+> 在ExtensionFactory加载扩展点时，会先从SPI容器中查找，然后再从Spring中查找。
 
+#### 4.4 扩展点动态编译实现
+> Dubbo通过动态生成代码+动态编译器(javassist)实现了自适应扩展点功能。
 
+#### 4.4.1 总体结构
+> Dubbo的Compiler在类上用@SPI修饰，其中SPI默认值是"javassist"作为默认编译器。  
+> Compiler的3个实现类分别是JavassistCompiler、JdkCompiler和AdaptiveCompiler，与ExtensionFactory类似的是，AdaptiveCompiler也同样是作为总管理入口，内部维护着其他Compiler实现。  
+> 如果需要改变默认编译器，可以通过<dubbo:application compiler="jdk" />标签改变，其内部会调用AdaptiveCompiler的setDefaultCompiler方法改变默认编译器。
 
+#### 4.4.2 Javassist动态代码编译
+> 1.通过ClassPool获得Javassist类池  
+> 2.传入字符串类型的参数，作为要生成的className，调用ClassPool的makeClass生成CtClass    
+> 3.使用CtNewMethod.make生成方法代码，并通过CtClass的addMethod与之关联起来  
+> 4.最终可以通过ctClass.toClass生成最终的Class对象，通过newInstance就可以获得对象实例了。
 
+> javassist的原理就是不断的通过正则表达式匹配不同位置的代码，会调用不同的Api生成不同结构的代码(以class为例，按照JVM规范拼写16进制代码，最终生成byte数组)，最终构造出一个完整的Class对象。
 
+#### 4.4.3 JDK动态代理编译
+> JDK动态编译代码主要依托于下面3个class完成：  
+> 1.JavaFileObject：字符串代码会被包装成一个文件对象，主要用于获取二进制流接口。  
+> 2.JavaFileManager：主要管理文件读取和输出位置，由于JDK中没有可以直接使用的实现类，作为唯一实现的ForwardingJavaFileManager又是protected类型，因此Dubbo又自己定义了一个实现类。  
+> 3.JavaCompiler，可以将JavaFileObject编译成具体的Class对象。
 
 
 

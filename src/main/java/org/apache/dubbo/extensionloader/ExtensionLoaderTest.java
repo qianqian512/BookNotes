@@ -57,7 +57,7 @@ public class ExtensionLoaderTest {
 	}
 	
 	@Test
-	public void testgetActivateExtensions() {
+	public void testGetActivateExtensions() {
 		
 	}
 }
