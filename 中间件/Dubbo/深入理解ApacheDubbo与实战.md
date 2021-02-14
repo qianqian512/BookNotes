@@ -40,7 +40,7 @@
 #### 4.2.3 扩展点自动激活注解：@Activate
 > @Activate可以放在interface、class、method和enum上，主要用于需要多个扩展点时，可以根据不同的条件激活(value或group)
 
-#### 4.2.1 ExtensionLoader的工作原理
+#### 4.3.1 ExtensionLoader的工作原理
 > ExtensionLoader获取扩展点的逻辑入口有3个：getExtension、getAdaptiveExtension和getActivateExtension，其中getExtension和getActivateExtension类似，共用代码居多，而getAdaptiveExtension则相对独立。  
 > getExtension工作流程：
 >> 1.加载SPI目录下的配置文件，并根据配置加载并缓存所有class，但并不会实例化操作  
@@ -48,4 +48,61 @@
 >> 3.实例化符合条件的Wrapper类，其中分为2种情况，一个是包含扩展点的setter方法；一个是包含扩展点的构造方法；  
 >> 4.返回实例对象。
 
-> getActivateExtension
+> getActivateExtension工作流程：  
+>> 1.和getExtension一样，先加载SPI目录下的配置文件，并根据配置加载并缓存所有class，但并不会实例化操作。  
+>> 2.生成自适应class的代码字符串  
+>> 3.获取到编译器(Compiler)实现，将代码字符串编译创建出自适应的实例对象
+>> 4.返回实例对象。
+
+#### 4.3.2 getExtension的实现原理
+> * 调用getExtension传入name如果是字符串"true"时，则会返回同getDefaultExtension相同的实现。  
+> 1.先尝试从cache中获得实现对应的class  
+> 2.如果cache中不存在，则查找DubboSpi的3个目录中，是否有可以匹配的实现类全称，例如com.alibaba.dubbo.common.extensionloader.activate.impl.GroupActivateExtImpl。  
+> 3.通过反射class.forName获得到扩展点的Class对象  
+> 4.针对步骤3反射出class对象进行初始化，需要区分3种情况：  
+>> 4.1 class上是否有@Adaptive注解，如果存在则缓存到AdaptiveClassCache中  
+>> 4.2 class是否是一个Wrapper类(判断方式为是否包含参数是自身接口类型的构造方法)，如果是Wrapper类型则缓存到WrapperClassCache中    
+>> 4.3 判断class上是否包含@Activate注解，如果包含的话则缓存到ActivateClassCache中，并缓存到extensionClassCache中一份（因为Activate也是普通的扩展点中的一种）  
+> (经历上面4个步骤，扩展点的class对象已经加载完成，接下来就是通过class构建出扩展点的实例对象)  
+> 5.根据扩展点class找出扩展点实例缓存(ExtensionInstanceCache)中是否存在，如果不存在则通过class.newInstance创建出一个  
+> 6.依赖注入扩展点实例的setter方法  
+> 7.通过WrapperClassCache判断扩展点是否存在Wrapper的可能，如果存在，则开始循环构建Wrapper对象，并最终返回。
+
+#### 4.3.3 getAdaptiveExtension实现原理
+> * getAdaptiveExtension和getExtension一个重要的区别就是需要生成自适应class  
+> 生成自适应class的代码逻辑如下：1.生成package、import、className等头部信息，className格式为className$Adaptive  
+> 2.遍历所有方法，生成方法内容主体，其中包括：参数校验不能为空，根据url获得参数作为extensionName查找扩展点实现  
+> 3.将动态生成的代码使用编译器进行编译，生成一个新的class对象。
+> 4.将上面的class使用newInstance创建出实例对象  
+> 5.复用getExtension的injectExtension方法，对对象进行注入，但不会进行wrapper。  
+> (Adaptive生成的代码可以参考UserService$Adaptive.java)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
