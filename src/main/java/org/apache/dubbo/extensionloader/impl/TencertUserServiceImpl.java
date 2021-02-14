@@ -4,6 +4,7 @@ import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.extension.Activate;
 import org.apache.dubbo.extensionloader.UserService;
 
+@Activate(group = { "A" })
 public class TencertUserServiceImpl implements UserService {
 
 	@Override
@@ -17,7 +18,7 @@ public class TencertUserServiceImpl implements UserService {
 	}
 
 	@Override
-	@Activate(value = {"tencent"})
+	@Activate(value = { "TEN" })
 	public String logout(String name) {
 		return "logout tencent user " + name;
 	}

@@ -4,6 +4,7 @@ import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.extension.Activate;
 import org.apache.dubbo.extensionloader.UserService;
 
+@Activate(group = { "B" }, value = { "MEI" })
 public class MeituanUserServiceImpl implements UserService {
 
 	@Override
@@ -17,7 +18,6 @@ public class MeituanUserServiceImpl implements UserService {
 	}
 
 	@Override
-	@Activate(value = {"meituan"})
 	public String logout(String name) {
 		return "logout meituan user " + name;
 	}

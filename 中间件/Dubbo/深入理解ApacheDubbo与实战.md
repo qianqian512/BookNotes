@@ -25,4 +25,14 @@
 >> com.alibaba.dubbo.rpc.Protocol如果实例化Wrapper类时，内部已经存在2个同类型的实例时，那么将哪个实例传入Wrapper的构造方法呢？</font>   
 > 2.自动加载：当实例化一个对象时，如果存在set方法的参数类型也在ExtensionLoader容器内，则也会将其自动注入。   
 > 3.自适应：自适应可以通过dubbo的url中的参数动态确定要使用的实例   
-> 4.自动激活：@Adaptive只能激活一个具体实现类，如果需要激活多个则借助于@Activate激活多个实现类。     
+> 4.自动激活：@Adaptive只能激活一个具体实现类，如果需要根据条件激活多个则借助于@Activate激活多个实现类。
+
+#### 4.2.1 扩展点注解：@SPI
+> @SPI注解一般标记在interface上，意为这是一个SPI接口，SPI.value对应的名称是默认扩展点实现，通过ExtensionLoader.getDefaultExtension可以获得
+
+#### 4.2.2 扩展点自适应注解：@Adaptive
+> @Adaptive注解可以标记在class或method上，修饰在class上作为默认的Adaptive实现，通过ExtensionLoader.getAdaptiveExtension获得，在整个Dubbo框架中，只有2个实现被标注在class上，分别是AdaptiveExtensionFactory和AdaptiveComplier。  
+>> AdaptiveExtensionFactory作为ExtensionFactory的统一入口，内置将SpiExtensionFactory和SpringExtensionFactory整合，达到打通两个容器的目的（具体可参见ExtensionFactory.injectExtension方法）。
+>> AdaptiveCompiler整合了JavassistCompiler和JdkCompiler，并支持setDefaultCompiler扩展，可以设置默认编译实现。  
+>> (仔细思考，其实上面2个自适应class级别的实现，完全可以用SPI的默认功能代替，不知道作者为什么要单独为这2个实现设计出class级别的自适应，且用的过程中也并没有发现自适应的特性，导致对@Adaptive理解起来多一个class级别的维度)   
+>

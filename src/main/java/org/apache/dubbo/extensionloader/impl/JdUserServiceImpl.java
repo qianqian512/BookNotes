@@ -4,6 +4,7 @@ import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.extension.Activate;
 import org.apache.dubbo.extensionloader.UserService;
 
+@Activate(group = { "B" })
 public class JdUserServiceImpl implements UserService {
 
 	@Override
@@ -17,7 +18,7 @@ public class JdUserServiceImpl implements UserService {
 	}
 
 	@Override
-	@Activate(value = {"jd"})
+	@Activate(value = { "JIN" })
 	public String logout(String name) {
 		return "logout jd user " + name;
 	}

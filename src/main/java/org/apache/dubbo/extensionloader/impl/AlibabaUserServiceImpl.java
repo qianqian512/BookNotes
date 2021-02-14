@@ -4,6 +4,7 @@ import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.extension.Activate;
 import org.apache.dubbo.extensionloader.UserService;
 
+@Activate(group = { "A", "B" })
 public class AlibabaUserServiceImpl implements UserService {
 
 	@Override
@@ -17,7 +18,7 @@ public class AlibabaUserServiceImpl implements UserService {
 	}
 
 	@Override
-	@Activate(value = {"alibaba"})
+	@Activate(value = { "ALI" })
 	public String logout(String name) {
 		return "logout alibaba user " + name;
 	}
