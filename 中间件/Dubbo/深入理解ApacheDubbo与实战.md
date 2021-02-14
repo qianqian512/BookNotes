@@ -35,4 +35,17 @@
 >> AdaptiveExtensionFactory作为ExtensionFactory的统一入口，内置将SpiExtensionFactory和SpringExtensionFactory整合，达到打通两个容器的目的（具体可参见ExtensionFactory.injectExtension方法）。
 >> AdaptiveCompiler整合了JavassistCompiler和JdkCompiler，并支持setDefaultCompiler扩展，可以设置默认编译实现。  
 >> (仔细思考，其实上面2个自适应class级别的实现，完全可以用SPI的默认功能代替，不知道作者为什么要单独为这2个实现设计出class级别的自适应，且用的过程中也并没有发现自适应的特性，导致对@Adaptive理解起来多一个class级别的维度)   
->
+> "自适应"的含义：通过DubboUrl的参数动态获得实现，如果没有匹配，则使用SPI默认实现。
+
+#### 4.2.3 扩展点自动激活注解：@Activate
+> @Activate可以放在interface、class、method和enum上，主要用于需要多个扩展点时，可以根据不同的条件激活(value或group)
+
+#### 4.2.1 ExtensionLoader的工作原理
+> ExtensionLoader获取扩展点的逻辑入口有3个：getExtension、getAdaptiveExtension和getActivateExtension，其中getExtension和getActivateExtension类似，共用代码居多，而getAdaptiveExtension则相对独立。  
+> getExtension工作流程：
+>> 1.加载SPI目录下的配置文件，并根据配置加载并缓存所有class，但并不会实例化操作  
+>> 2.根据传入的name实例化对应的class  
+>> 3.实例化符合条件的Wrapper类，其中分为2种情况，一个是包含扩展点的setter方法；一个是包含扩展点的构造方法；  
+>> 4.返回实例对象。
+
+> getActivateExtension

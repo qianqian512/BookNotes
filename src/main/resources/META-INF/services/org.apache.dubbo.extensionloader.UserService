@@ -3,3 +3,5 @@ tencent=org.apache.dubbo.extensionloader.impl.TencertUserServiceImpl
 alibaba=org.apache.dubbo.extensionloader.impl.AlibabaUserServiceImpl
 meituan=org.apache.dubbo.extensionloader.impl.MeituanUserServiceImpl
 jd=org.apache.dubbo.extensionloader.impl.JdUserServiceImpl
+wrapper1=org.apache.dubbo.extensionloader.impl.UserServiceWrapper
+wrapper2=org.apache.dubbo.extensionloader.impl.UserServiceWrapper2

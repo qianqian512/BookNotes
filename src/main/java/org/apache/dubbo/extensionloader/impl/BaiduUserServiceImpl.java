@@ -2,6 +2,7 @@ package org.apache.dubbo.extensionloader.impl;
 
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.extension.Activate;
+import org.apache.dubbo.extensionloader.UserNode;
 import org.apache.dubbo.extensionloader.UserService;
 
 @Activate(group = { "A" }, value = { "BAI" })
@@ -18,8 +19,7 @@ public class BaiduUserServiceImpl implements UserService {
 	}
 
 	@Override
-	@Activate(value = { "BAI" })
-	public String logout(String name) {
-		return "logout baidu user " + name;
+	public String logout(UserNode node) {
+		return "logout baidu user " + node.name;
 	}
 }

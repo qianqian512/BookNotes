@@ -6,11 +6,12 @@ import org.apache.dubbo.common.extension.SPI;
 
 @SPI("baidu")
 public interface UserService {
-	
+
 	public String regist(String name);
-	
-	@Adaptive("u")
+
+	@Adaptive({ "u", "r" })
 	public String login(URL url, String name);
-	
-	public String logout(String name);
+
+	@Adaptive({ "u", "r" })
+	public String logout(UserNode node);
 }
