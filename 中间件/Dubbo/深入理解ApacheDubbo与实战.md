@@ -108,6 +108,27 @@
 > 3.JavaCompiler，可以将JavaFileObject编译成具体的Class对象。
 
 
+### 第五章：Dubbo启停原理解析 
+#### 5.1 配置解析
+> Dubbo框架提供了3种配置方式：XML配置、注解和属性文件(ymal或properties)
+
+#### 5.1.1 基于schema设计解析
+> 1.Dubbo的xml配置约束文件在dubbo-config/dubbo-config-spring/src/main/resources/dubbo.xsd文件中定义。  
+> 2.Dubbo配置与Spring的XML文件集成原理：Spring在解析到自定义的Namespace标签时，会查找对应的spring.schemas和spring.handlers文件，最终触发Dubbo的DubboNamespaceHandler来进行解析和初始化。其中xsd文件约定了xml配置规范，handlers文件定义了xml标签的解析类。  
+> 3.Dubbo的Schema也是经过分层设计，参考2.7.3版本：  
+> 3.1 最上层是一个抽象度最高的配置类，只记载了id和prefix，即xml标签的前缀，例如"dubbo:service"  
+> 3.2 第二层分支较多：例如ApplicationConfig、ProtocolConfig、RegistryConfig、AbstractMethodConfig等    
+> 3.3 第三层分支只有AbstractMethodConfig的子类，又细分出了Provider和Consumer、Service和Reference  
+> * 思考：这到底是根据什么分的层，没搞明白
+> 4.关于对Dubbo二次开发时需要注意：不仅要对新增的字段在xsd中定义，且还要在对用的dubbo-config-api中Config类增加相应的字段，并提供get/set方法，这样用户在配置xml后才会自动注入这个值。
+
+
+ 
+
+
+
+
+
 
 
 
