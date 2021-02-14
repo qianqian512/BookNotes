@@ -18,7 +18,7 @@ public class AlibabaUserServiceImpl implements UserService {
 
 	@Override
 	@Activate(value = {"alibaba"})
-	public String logout(URL url, String name) {
+	public String logout(String name) {
 		return "logout alibaba user " + name;
 	}
 }

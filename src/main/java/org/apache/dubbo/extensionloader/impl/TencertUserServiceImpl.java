@@ -18,7 +18,7 @@ public class TencertUserServiceImpl implements UserService {
 
 	@Override
 	@Activate(value = {"tencent"})
-	public String logout(URL url, String name) {
+	public String logout(String name) {
 		return "logout tencent user " + name;
 	}
 }

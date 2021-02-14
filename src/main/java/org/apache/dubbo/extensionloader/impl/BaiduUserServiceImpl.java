@@ -18,7 +18,7 @@ public class BaiduUserServiceImpl implements UserService {
 
 	@Override
 	@Activate(value = {"baidu"})
-	public String logout(URL url, String name) {
+	public String logout(String name) {
 		return "logout baidu user " + name;
 	}
 }

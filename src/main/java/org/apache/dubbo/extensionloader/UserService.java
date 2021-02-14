@@ -12,5 +12,5 @@ public interface UserService {
 	@Adaptive("u")
 	public String login(URL url, String name);
 	
-	public String logout(URL url, String name);
+	public String logout(String name);
 }

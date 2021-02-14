@@ -18,7 +18,7 @@ public class JdUserServiceImpl implements UserService {
 
 	@Override
 	@Activate(value = {"jd"})
-	public String logout(URL url, String name) {
+	public String logout(String name) {
 		return "logout jd user " + name;
 	}
 }

@@ -36,7 +36,7 @@ public class ExtensionLoaderTest {
 		url = url.addParameter("u", "baidu,alibaba,tencent");
 		List<UserService> userServiceList = ExtensionLoader.getExtensionLoader(UserService.class).getActivateExtension(url, "u");
 		for (UserService userService : userServiceList) {
-			System.out.println(userService.logout(url, "huming"));
+			System.out.println(userService.logout("huming"));
 		}
 //		ExtensionLoader.getExtensionLoader(UserService.class).getActivateExtension(url, values)
 	}

@@ -18,7 +18,7 @@ public class MeituanUserServiceImpl implements UserService {
 
 	@Override
 	@Activate(value = {"meituan"})
-	public String logout(URL url, String name) {
+	public String logout(String name) {
 		return "logout meituan user " + name;
 	}
 }
