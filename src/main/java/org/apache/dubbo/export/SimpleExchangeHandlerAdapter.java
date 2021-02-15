@@ -22,6 +22,9 @@ import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcContext;
 import org.apache.dubbo.rpc.RpcInvocation;
 
+/**
+ * 摘自DubboProtocol的匿名内部类，有删减，为了方便阅读学习，仅保留了主要流程
+ */
 public class SimpleExchangeHandlerAdapter extends ExchangeHandlerAdapter {
 	
 	private Invoker<?> invoker;

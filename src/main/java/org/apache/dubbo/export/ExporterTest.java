@@ -14,10 +14,14 @@ import org.apache.dubbo.config.RegistryConfig;
 import org.apache.dubbo.config.ServiceConfig;
 import org.apache.dubbo.config.bootstrap.DubboBootstrap;
 import org.apache.dubbo.config.context.ConfigManager;
+import org.apache.dubbo.remoting.ChannelHandler;
 import org.apache.dubbo.remoting.Constants;
 import org.apache.dubbo.remoting.RemotingException;
+import org.apache.dubbo.remoting.Transporters;
+import org.apache.dubbo.remoting.exchange.ExchangeHandler;
 import org.apache.dubbo.remoting.exchange.Exchanger;
-import org.apache.dubbo.remoting.exchange.Exchangers;
+import org.apache.dubbo.remoting.exchange.support.header.HeaderExchangeHandler;
+import org.apache.dubbo.remoting.transport.DecodeHandler;
 import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.Protocol;
 import org.apache.dubbo.rpc.ProxyFactory;
@@ -137,7 +141,6 @@ public class ExporterTest {
 		
 		System.in.read();
 	}
-
 	
 	/**
 	 * 将DubboProtocol展开，删除了一些细节部分，仅仅保留主题方便阅读学习
@@ -171,6 +174,47 @@ public class ExporterTest {
 		String exchangerType = exportUrl.getParameter(Constants.EXCHANGER_KEY, Constants.DEFAULT_EXCHANGER);
 		Exchanger exchanger = ExtensionLoader.getExtensionLoader(Exchanger.class).getExtension(exchangerType);
 		exchanger.bind(exportUrl, new SimpleExchangeHandlerAdapter(invoker));
+
+		System.out.println("service exported!");
+		
+		System.in.read();
+	}
+	
+	/**
+	 * 将Exchanger展开，了解HeaderExchanger
+	 */
+	@Test
+	public void testExport4() throws Exception {
+
+		// 初始化dubbo依赖的环境配置
+		initDubboEnv();
+		
+		URL exportUrl = new URL("dubbo", "localhost", 20880, "org.apache.dubbo.export.UserService");
+		
+		UserService userServiceRef = new UserServiceImpl();
+		
+		ServiceRepository resp = (ServiceRepository) ExtensionLoader.getExtensionLoader(FrameworkExt.class).getExtension("repository");
+		// 这里传入的Instance是为telnet命令调用，下面invoker传入的Instance是为Dubbo协议调用
+		resp.registerProvider(UserService.class.getName(), userServiceRef, resp.registerService(UserService.class), null, null);
+		
+		// 这里拿到的是DubboInvoker实例
+		Invoker<UserService> invoker = new AbstractProxyInvoker<UserService>(userServiceRef, UserService.class, exportUrl) {
+			@Override
+			protected Object doInvoke(UserService proxy, String methodName, Class<?>[] parameterTypes, Object[] arguments) throws Throwable {
+				final Wrapper wrapper = Wrapper.getWrapper(proxy.getClass().getName().indexOf('$') < 0 ? proxy.getClass() : UserService.class);
+				return wrapper.invokeMethod(proxy, methodName, parameterTypes, arguments);
+			}
+		};
+
+		/**
+		 * 在receive请求后，3个Handler的处理顺序为：DecodeHandler->HeaderExchangeHandler->SimpleExchangeHandlerAdapter
+		 * 意图很明显，先解码->再处理网络层，例如telnet命令行，事件等->最后处理Dubbo的业务分发逻辑
+		 */
+		ChannelHandler exchangeHandler = new SimpleExchangeHandlerAdapter(invoker); // 3
+		ChannelHandler channelHandler = new HeaderExchangeHandler((ExchangeHandler) exchangeHandler); // 2
+		ChannelHandler decodeHandler = new DecodeHandler(channelHandler); // 1
+		// 代码剖析到这里，已经开始发现Netty的影子了
+		Transporters.bind(exportUrl, decodeHandler);
 
 		System.out.println("service exported!");
 		
