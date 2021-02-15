@@ -122,11 +122,25 @@
 > * 思考：这到底是根据什么分的层，没搞明白
 > 4.关于对Dubbo二次开发时需要注意：不仅要对新增的字段在xsd中定义，且还要在对用的dubbo-config-api中Config类增加相应的字段，并提供get/set方法，这样用户在配置xml后才会自动注入这个值。
 
+#### 5.1.2 基于XML配置原理解析
+> dubbo.xsd定义了xml的格式与约束，而主要代码逻辑解析在DubboNamespaceHandler中完成，而DubboNamespaceHandler主要职责是将不同的标签关联到对应的解析类中  
+> XML配置解析过程：  
+>> (略) 感觉很繁琐但并不复杂，大概思路就是将xml标签转成RootBeanDefinition
 
- 
+#### 5.1.3 基于注解配置原理解析
+> dubbo在早期基于AnnotationBean实现注解配置，其底层主要是依赖于Spring的BeanPostProcessor实现，存在以下几个问题：  
+>> 1.注解还是依赖XML，开启注解需要配置XML：<dubbo:annotation />  
+>> 2.@ServiceBean不支持AOP  
+>> 3.@ReferenceBean不支持字段继承  
 
+> 在重构后，底层使用SpringBoot配置方式。  
 
-
+#### 5.2 服务暴露的实现原理
+#### 5.2.1 配置承载初始化
+> 1.JVM的-D参数优先级最高    
+> 2.XML配置优先级其次  
+> 3.properties置文件优先级最低  
+> 4.配置中的consumer配置优先级高于provider，例如timeout，retries等。 
 
 
 
