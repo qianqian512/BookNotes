@@ -142,7 +142,9 @@
 > 3.properties置文件优先级最低  
 > 4.配置中的consumer配置优先级高于provider，例如timeout，retries等。 
 
-
+#### 5.2.2 远程服务的暴露机制
+> RPC整体暴露流程：将ServiceConfig+服务实例，通过ProxyFactory转成Invoker，Invoker通过Protocol转成Exporter。  
+> 
 
 
 
