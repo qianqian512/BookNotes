@@ -8,7 +8,7 @@ public class ProxyTest {
 
 	@Test
 	public void test1() {
-		ProxyFactory extension = ExtensionLoader.getExtensionLoader(ProxyFactory.class).getExtension("my_proxy");
+		ProxyFactory extension = ExtensionLoader.getExtensionLoader(ProxyFactory.class).getExtension("spay_proxy");
 		System.out.println(extension);
 	}
 }

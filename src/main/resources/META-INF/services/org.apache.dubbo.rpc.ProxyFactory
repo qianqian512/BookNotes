@@ -1,1 +1,1 @@
-my_proxy=org.apache.dubbo.proxy.MyProxyFactory
+spay_proxy=org.apache.dubbo.proxy.SpayProxyFactory
