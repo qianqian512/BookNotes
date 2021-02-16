@@ -112,8 +112,6 @@ AdaptiveExtensionFactory作为ExtensionLoader的默认实现，内部实际是�
 #### Dubbo调用时序列化结构
 
 #### 对比Exchange层和Transport层的差异
-> Exchange层面向的是Invocation和Result  
-> Transport层面向的是Request和Response  
 
 
 

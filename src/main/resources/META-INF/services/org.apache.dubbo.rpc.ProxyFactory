@@ -1,0 +1,1 @@
+my_proxy=org.apache.dubbo.proxy.MyProxyFactory
