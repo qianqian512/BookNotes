@@ -143,11 +143,56 @@
 > 4.配置中的consumer配置优先级高于provider，例如timeout，retries等。 
 
 #### 5.2.2 远程服务的暴露机制
-> RPC整体暴露流程：将ServiceConfig+服务实例，通过ProxyFactory转成Invoker，Invoker通过Protocol转成Exporter。  
-> 
+> 从框架角度看：  
+>> 将ServiceConfig+服务实例，通过ProxyFactory转成Invoker，Invoker通过Protocol转成Exporter。    TODO
+
+> 从源码角度看：
+>> 1.
 
 
+### 第8章：Dubbo扩展点
+#### 8.1.2 扩展点整体架构
+> 在整个Dubbo框架中，可扩展的point逻辑分层如下：  
+>> Proxy层：ProxyFactory  
+>> Registry层：RegistryFactory
+>> Cluster层：Cluster、RouterFactory、LoadBalance、ConfigurationFactory、Merger  
+>> Protocol层：Protocol、Filter、ExporterListener、InvokerListener  
+>> Exchange层：Exchanger  
+>> Transport层：Transport、Dispatcher、Codec2、ChannelHandler、ThreadPool  
+>> Serilize层：Serialization
 
+#### 8.2.1 Proxy层扩展点
+
+#### 8.2.2 Registry层扩展点
+
+#### 8.2.3 Cluster层扩展点
+##### Cluster
+##### RouterFactory
+##### LoadBalance
+##### ConfigurationFactory
+##### Merger
+
+#### 8.3.1 Protocol扩展点
+#### Filter扩展点
+#### ExporterListener、InvokerListener 扩展点
+
+#### 8.3.2 Exchange层扩展点
+
+#### 8.3.3 Transport层扩展点
+##### Dispatcher扩展接口
+##### Codec2扩展接口
+##### ThreadPool扩展接口
+
+#### 8.3.4 Serilize层扩展点
+
+#### 8.4 其他扩展点
+> TelnetHandler  
+> StatusChecker  
+> Container  
+> CacheFactory  
+> Validation  
+> LoggerAdapter  
+> Compiler  
 
 
 
