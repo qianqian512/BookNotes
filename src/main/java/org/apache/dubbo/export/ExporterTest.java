@@ -1,13 +1,9 @@
 package org.apache.dubbo.export;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.dubbo.common.constants.CommonConstants.ANYHOST_KEY;
 import static org.apache.dubbo.common.constants.CommonConstants.ANYHOST_VALUE;
 import static org.apache.dubbo.common.constants.CommonConstants.IO_THREADS_KEY;
-import static org.apache.dubbo.remoting.Constants.CHANNEL_READONLYEVENT_SENT_KEY;
 import static org.apache.dubbo.remoting.Constants.CODEC_KEY;
-import static org.apache.dubbo.remoting.Constants.DEFAULT_HEARTBEAT;
-import static org.apache.dubbo.remoting.Constants.HEARTBEAT_KEY;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -39,7 +35,6 @@ import org.apache.dubbo.remoting.transport.DecodeHandler;
 import org.apache.dubbo.remoting.transport.netty4.NettyCodecAdapter;
 import org.apache.dubbo.remoting.transport.netty4.NettyEventLoopFactory;
 import org.apache.dubbo.remoting.transport.netty4.NettyServerHandler;
-import org.apache.dubbo.remoting.utils.UrlUtils;
 import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.Protocol;
 import org.apache.dubbo.rpc.ProxyFactory;
@@ -57,7 +52,6 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.timeout.IdleStateHandler;
 
 @SuppressWarnings("deprecation")
 public class ExporterTest {
@@ -200,13 +194,7 @@ public class ExporterTest {
 		
 		// 其实Dubbo内置只有一个Exchange实现，因此这里的exchangerType永远都等于header，即HeaderExchanger
 		String exchangerType = exportUrl.getParameter(Constants.EXCHANGER_KEY, Constants.DEFAULT_EXCHANGER);
-		exportUrl = URLBuilder.from(exportUrl)
-                // send readonly event when server closes, it's enabled by default
-                .addParameterIfAbsent(CHANNEL_READONLYEVENT_SENT_KEY, Boolean.TRUE.toString())
-                // enable heartbeat by default
-                .addParameterIfAbsent(HEARTBEAT_KEY, String.valueOf(DEFAULT_HEARTBEAT))
-                .addParameter(CODEC_KEY, DubboCodec.NAME)
-                .build();
+		exportUrl = URLBuilder.from(exportUrl).addParameter(CODEC_KEY, DubboCodec.NAME).build();
 		Exchanger exchanger = ExtensionLoader.getExtensionLoader(Exchanger.class).getExtension(exchangerType);
 		exchanger.bind(exportUrl, new SimpleExchangeHandlerAdapter(invoker));
 
@@ -246,13 +234,7 @@ public class ExporterTest {
 		ChannelHandler channelHandler = new HeaderExchangeHandler((ExchangeHandler) exchangeHandler); // 2
 		ChannelHandler decodeHandler = new DecodeHandler(channelHandler); // 1
 
-		exportUrl = URLBuilder.from(exportUrl)
-                // send readonly event when server closes, it's enabled by default
-                .addParameterIfAbsent(CHANNEL_READONLYEVENT_SENT_KEY, Boolean.TRUE.toString())
-                // enable heartbeat by default
-                .addParameterIfAbsent(HEARTBEAT_KEY, String.valueOf(DEFAULT_HEARTBEAT))
-                .addParameter(CODEC_KEY, DubboCodec.NAME)
-                .build();
+		exportUrl = URLBuilder.from(exportUrl).addParameter(CODEC_KEY, DubboCodec.NAME).build();
 		
 		// 代码剖析到这里，已经开始发现Netty的影子了
 		Transporters.bind(exportUrl, decodeHandler); 
@@ -289,13 +271,7 @@ public class ExporterTest {
 		ChannelHandler channelHandler = new HeaderExchangeHandler((ExchangeHandler) exchangeHandler); // 2
 		ChannelHandler decodeHandler = new DecodeHandler(channelHandler); // 1
 
-		exportUrl = URLBuilder.from(exportUrl)
-                // send readonly event when server closes, it's enabled by default
-                .addParameterIfAbsent(CHANNEL_READONLYEVENT_SENT_KEY, Boolean.TRUE.toString())
-                // enable heartbeat by default
-                .addParameterIfAbsent(HEARTBEAT_KEY, String.valueOf(DEFAULT_HEARTBEAT))
-                .addParameter(CODEC_KEY, DubboCodec.NAME)
-                .build();
+		exportUrl = URLBuilder.from(exportUrl).addParameter(CODEC_KEY, DubboCodec.NAME).build();
 		URL _exportUrl = exportUrl;
 		
 		/************* 新展开部分 *************/
@@ -303,9 +279,6 @@ public class ExporterTest {
 		EventLoopGroup bossGroup = NettyEventLoopFactory.eventLoopGroup(1, "NettyServerBoss");
 		EventLoopGroup workerGroup = NettyEventLoopFactory.eventLoopGroup( exportUrl.getPositiveParameter(IO_THREADS_KEY, Constants.DEFAULT_IO_THREADS), "NettyServerWorker");
         
-		// 这里的解码器和decodeHandler的区别：
-//		TelnetCodec codec2 = (TelnetCodec) ExtensionLoader.getExtensionLoader(Codec2.class).getExtension(exportUrl.getParameter(Constants.CODEC_KEY, "telnet"));
-		
         bootstrap.group(bossGroup, workerGroup);
         bootstrap.channel(NettyEventLoopFactory.serverSocketChannelClass());
         bootstrap.option(ChannelOption.SO_REUSEADDR, Boolean.TRUE);
@@ -313,12 +286,10 @@ public class ExporterTest {
 		bootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
 			@Override
 			protected void initChannel(SocketChannel ch) throws Exception {
-				int idleTimeout = UrlUtils.getIdleTimeout(_exportUrl);
 				// 这里应该取调用方的URL，而不是exportURL
-				NettyCodecAdapter adapter = new NettyCodecAdapter(ExtensionLoader.getExtensionLoader(Codec2.class).getExtension("dubbo"), _exportUrl, decodeHandler);
-				ch.pipeline()
-				.addLast("decoder", adapter.getDecoder()).addLast("encoder", adapter.getEncoder())
-						.addLast("server-idle-handler", new IdleStateHandler(0, 0, idleTimeout, MILLISECONDS))
+				System.out.println("::::" + _exportUrl.getParameter(CODEC_KEY));
+				NettyCodecAdapter adapter = new NettyCodecAdapter(ExtensionLoader.getExtensionLoader(Codec2.class).getExtension(_exportUrl.getParameter(CODEC_KEY)), _exportUrl, decodeHandler);
+				ch.pipeline().addLast("decoder", adapter.getDecoder()).addLast("encoder", adapter.getEncoder())
 						.addLast("handler", new NettyServerHandler(_exportUrl, decodeHandler));
 			}
 		});
