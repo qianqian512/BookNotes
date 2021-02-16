@@ -106,3 +106,34 @@ AdaptiveExtensionFactory作为ExtensionLoader的默认实现，内部实际是�
 #### Dubbo的Injvm协议是干嘛用的？
 
 #### Dubbo消费者中是如何将多个注册中心转成一个Invoker的？
+
+#### Exchange层存在的目的是什么？
+
+#### Dubbo调用时序列化结构
+
+#### 对比Exchange层和Transport层的差异
+> Exchange层面向的是Invocation和Result  
+> Transport层面向的是Request和Response  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

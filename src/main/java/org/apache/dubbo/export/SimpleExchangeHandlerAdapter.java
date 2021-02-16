@@ -24,6 +24,7 @@ import org.apache.dubbo.rpc.RpcInvocation;
 
 /**
  * 摘自DubboProtocol的匿名内部类，有删减，为了方便阅读学习，仅保留了主要流程
+ * 对比下层的Transport层面向的是Request和Response的概念；而Exchange这层很明显面向的都是Invocation和Result
  */
 public class SimpleExchangeHandlerAdapter extends ExchangeHandlerAdapter {
 	

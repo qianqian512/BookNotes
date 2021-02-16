@@ -30,6 +30,7 @@ import org.apache.dubbo.remoting.RemotingException;
 import org.apache.dubbo.remoting.Transporters;
 import org.apache.dubbo.remoting.exchange.ExchangeHandler;
 import org.apache.dubbo.remoting.exchange.Exchanger;
+import org.apache.dubbo.remoting.exchange.Request;
 import org.apache.dubbo.remoting.exchange.support.header.HeaderExchangeHandler;
 import org.apache.dubbo.remoting.transport.DecodeHandler;
 import org.apache.dubbo.remoting.transport.netty4.NettyCodecAdapter;
@@ -46,10 +47,8 @@ import org.apache.dubbo.rpc.proxy.AbstractProxyInvoker;
 import org.junit.Test;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 
@@ -58,10 +57,11 @@ public class ExporterTest {
 	
 	@Test
 	public void testReference0() {
+		new Request();
 		ReferenceConfig<UserService> referneceConfig = new ReferenceConfig<UserService>();
 		referneceConfig.setApplication(new ApplicationConfig("humking-f"));
 		referneceConfig.setProtocol("dubbo");
-		referneceConfig.setUrl("dubbo://localhost:20880");
+		referneceConfig.setUrl("dubbo://localhost:20880?timeout=1000000");
 		referneceConfig.setInterface(UserService.class);
 		System.out.println(referneceConfig.get().sayHello("333"));
 	}
@@ -146,7 +146,7 @@ public class ExporterTest {
 		// 这里传入的Instance是为telnet命令调用，下面invoker传入的Instance是为Dubbo协议调用
 		resp.registerProvider(UserService.class.getName(), userServiceRef, resp.registerService(UserService.class), null, null);
 		
-		// 这里拿到的是DubboInvoker实例
+		// 代码摘自JavassistRpcProxyFactory
 		Invoker<UserService> invoker = new AbstractProxyInvoker<UserService>(userServiceRef, UserService.class, exportUrl) {
             @Override
             protected Object doInvoke(UserService proxy, String methodName, Class<?>[] parameterTypes, Object[] arguments) throws Throwable {
@@ -194,7 +194,7 @@ public class ExporterTest {
 		
 		// 其实Dubbo内置只有一个Exchange实现，因此这里的exchangerType永远都等于header，即HeaderExchanger
 		String exchangerType = exportUrl.getParameter(Constants.EXCHANGER_KEY, Constants.DEFAULT_EXCHANGER);
-		exportUrl = URLBuilder.from(exportUrl).addParameter(CODEC_KEY, DubboCodec.NAME).build();
+		exportUrl = URLBuilder.from(exportUrl).addParameter(CODEC_KEY, DubboCodec.NAME).build(); // 这行代码就是从DubboProtocol摘出来的，规定了编解码要用DubboCodec
 		Exchanger exchanger = ExtensionLoader.getExtensionLoader(Exchanger.class).getExtension(exchangerType);
 		exchanger.bind(exportUrl, new SimpleExchangeHandlerAdapter(invoker));
 
@@ -234,6 +234,7 @@ public class ExporterTest {
 		ChannelHandler channelHandler = new HeaderExchangeHandler((ExchangeHandler) exchangeHandler); // 2
 		ChannelHandler decodeHandler = new DecodeHandler(channelHandler); // 1
 
+		// 摘自DubboProtocol.createServer代码
 		exportUrl = URLBuilder.from(exportUrl).addParameter(CODEC_KEY, DubboCodec.NAME).build();
 		
 		// 代码剖析到这里，已经开始发现Netty的影子了
@@ -271,24 +272,24 @@ public class ExporterTest {
 		ChannelHandler channelHandler = new HeaderExchangeHandler((ExchangeHandler) exchangeHandler); // 2
 		ChannelHandler decodeHandler = new DecodeHandler(channelHandler); // 1
 
+		// 摘自DubboProtocol.createServer代码
 		exportUrl = URLBuilder.from(exportUrl).addParameter(CODEC_KEY, DubboCodec.NAME).build();
 		URL _exportUrl = exportUrl;
 		
 		/************* 新展开部分 *************/
 		ServerBootstrap bootstrap = new ServerBootstrap();
 		EventLoopGroup bossGroup = NettyEventLoopFactory.eventLoopGroup(1, "NettyServerBoss");
-		EventLoopGroup workerGroup = NettyEventLoopFactory.eventLoopGroup( exportUrl.getPositiveParameter(IO_THREADS_KEY, Constants.DEFAULT_IO_THREADS), "NettyServerWorker");
+		EventLoopGroup workerGroup = NettyEventLoopFactory.eventLoopGroup(exportUrl.getPositiveParameter(IO_THREADS_KEY, Constants.DEFAULT_IO_THREADS), "NettyServerWorker");
         
         bootstrap.group(bossGroup, workerGroup);
         bootstrap.channel(NettyEventLoopFactory.serverSocketChannelClass());
-        bootstrap.option(ChannelOption.SO_REUSEADDR, Boolean.TRUE);
-        bootstrap.childOption(ChannelOption.TCP_NODELAY, Boolean.TRUE).childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
 		bootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
 			@Override
 			protected void initChannel(SocketChannel ch) throws Exception {
-				// 这里应该取调用方的URL，而不是exportURL
-				System.out.println("::::" + _exportUrl.getParameter(CODEC_KEY));
+				// 这里的codec的实现类是DubboCodec.java
 				NettyCodecAdapter adapter = new NettyCodecAdapter(ExtensionLoader.getExtensionLoader(Codec2.class).getExtension(_exportUrl.getParameter(CODEC_KEY)), _exportUrl, decodeHandler);
+				// in_pipeline: DubboCodec.decode -> DecodeHandler -> HeaderExchangeHandler ->  SimpleExchangeHandlerAdapter
+				// out_pipeline: 
 				ch.pipeline().addLast("decoder", adapter.getDecoder()).addLast("encoder", adapter.getEncoder())
 						.addLast("handler", new NettyServerHandler(_exportUrl, decodeHandler));
 			}
