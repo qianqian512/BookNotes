@@ -1,4 +1,4 @@
-package org.apache.dubbo.export;
+package org.apache.dubbo.user;
 
 public interface UserService {
 

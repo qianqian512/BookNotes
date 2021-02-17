@@ -44,6 +44,8 @@ import org.apache.dubbo.rpc.model.ServiceRepository;
 import org.apache.dubbo.rpc.protocol.dubbo.DubboCodec;
 import org.apache.dubbo.rpc.protocol.dubbo.DubboProtocol;
 import org.apache.dubbo.rpc.proxy.AbstractProxyInvoker;
+import org.apache.dubbo.user.UserService;
+import org.apache.dubbo.user.UserServiceImpl;
 import org.junit.Test;
 
 import io.netty.bootstrap.ServerBootstrap;
@@ -110,6 +112,7 @@ public class ExporterTest {
 		initDubboEnv();
 		
 		URL exportUrl = new URL("dubbo", "localhost", 20880, "org.apache.dubbo.export.UserService");
+		exportUrl = exportUrl.addParameter("proxy", "spay_proxy");
 		
 		UserService userServiceRef = new UserServiceImpl();
 		
