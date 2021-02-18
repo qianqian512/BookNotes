@@ -10,8 +10,7 @@ public class SpayProtocol implements Protocol {
 
 	@Override
 	public int getDefaultPort() {
-		// TODO Auto-generated method stub
-		return 0;
+		return 20880;
 	}
 
 	@Override

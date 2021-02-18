@@ -17,11 +17,11 @@ public class UserServiceWrapper {
 	}
 
 	public boolean hasProperty(String n) {
-		return pts.containsKey($1);
+		return pts.containsKey(n);
 	}
 
 	public Class getPropertyType(String n) {
-		return (Class) pts.get($1);
+		return (Class) pts.get(n);
 	}
 
 	public String[] getMethodNames() {
@@ -35,22 +35,22 @@ public class UserServiceWrapper {
 	public void setPropertyValue(Object o, String n, Object v) {
 		org.apache.dubbo.user.UserServiceImpl w;
 		try {
-			w = ((org.apache.dubbo.user.UserServiceImpl) $1);
+			w = ((org.apache.dubbo.user.UserServiceImpl) o);
 		} catch (Throwable e) {
 			throw new IllegalArgumentException(e);
 		}
-		throw new org.apache.dubbo.common.bytecode.NoSuchPropertyException("Not found property \"" + $2
+		throw new org.apache.dubbo.common.bytecode.NoSuchPropertyException("Not found property \"" + n
 				+ "\" field or setter method in class org.apache.dubbo.export.UserServiceImpl.");
 	}
 
 	public Object getPropertyValue(Object o, String n) {
 		org.apache.dubbo.user.UserServiceImpl w;
 		try {
-			w = ((org.apache.dubbo.user.UserServiceImpl) $1);
+			w = ((org.apache.dubbo.user.UserServiceImpl) o);
 		} catch (Throwable e) {
 			throw new IllegalArgumentException(e);
 		}
-		throw new org.apache.dubbo.common.bytecode.NoSuchPropertyException("Not found property \"" + $2
+		throw new org.apache.dubbo.common.bytecode.NoSuchPropertyException("Not found property \"" + n
 				+ "\" field or setter method in class org.apache.dubbo.export.UserServiceImpl.");
 	}
 
@@ -58,17 +58,17 @@ public class UserServiceWrapper {
 			throws java.lang.reflect.InvocationTargetException {
 		org.apache.dubbo.user.UserServiceImpl w;
 		try {
-			w = ((org.apache.dubbo.user.UserServiceImpl) $1);
+			w = ((org.apache.dubbo.user.UserServiceImpl) o);
 		} catch (Throwable e) {
 			throw new IllegalArgumentException(e);
 		}
 		try {
-			if ("sayHello".equals($2) && $3.length == 1) {
-				return ($w) w.sayHello((java.lang.String) $4[0]);
+			if ("sayHello".equals(n) && p.length == 1) {
+				return w.sayHello((java.lang.String) v[0]);
 			}
 		} catch (Throwable e) {
 			throw new java.lang.reflect.InvocationTargetException(e);
 		}
-		throw new org.apache.dubbo.common.bytecode.NoSuchMethodException("Not found method \"" + $2 + "\" in class org.apache.dubbo.export.UserServiceImpl.");
+		throw new org.apache.dubbo.common.bytecode.NoSuchMethodException("Not found method \"" + n + "\" in class org.apache.dubbo.export.UserServiceImpl.");
 	}
 }
