@@ -6,6 +6,11 @@ import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.Protocol;
 import org.apache.dubbo.rpc.RpcException;
 
+/**
+ * TODO Transport用Socket实现，忽略Exchange层，支持序列化，header还是遵循Dubbo报文格式
+ * @author hudaming
+ *
+ */
 public class SpayProtocol implements Protocol {
 
 	@Override

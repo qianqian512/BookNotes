@@ -182,13 +182,13 @@
 #### 8.3.1 Protocol扩展点
 #### Protocol扩展点：
 > 细看Dubbo的Protocol接口有众多实现，大致可以分为以下几类
->> 1.DubboProtocol，Injvm  
+>> 1.DubboProtocol，Injvm：Dubbo框架中应用最广泛的协议。  
 >> 2.Wrapper类型：ProtocolFilterWrapper、ProtocolListenerWrapper和QosProtocolWrapper  
 >> 3.ClientOnly，不支持export方法，例如：MemcachedProtocol、RedisProtocol和MockProtocol（看这两个实现的目的应该就是将Java对象映射持久化到NoSQL中；起内部实现原理也是借助于MemcachedClient和RedisClient仅仅实现了最基本的get/set操作，很鸡肋，对于redis而言其他数据结构的API都没有）  
->> 4.新增异构通信协议：http+(hessian/webservice/xml/rest)、Grpc、Thrift：  
->>      感觉上与Dubbo协议完全脱节，从通信报文格式上来看就已经全然不是一个东西：Dubbo基于TCP开发，定义了自己特有16字节长的Header，而一旦用了异构协议，HTTP，Grpc以及Thrift都有自己的Header；    
->>      包括底层线程模型、IO模型也直接取决于第三方实现，例如Http体系的定义了HttpBind，实现可以用Tomcat、Jetty、Netty等、另外2个Grpc和Thrift的底层模型也有引入的jar包决定；   
->>	看得出来，新增的协议应该就是为了支持异构系统，未来可以将项目中的一个服务，既用Dubbo暴露，也可以用其他异构协议暴露。    
+>> 4.新增异构通信协议：http+(hessian/webservice/xml/rest)、Grpc、Thrift  
+>> 第4类给人感觉上与Dubbo协议完全脱节，从通信报文格式上来看就已经全然不是一个东西：Dubbo基于TCP开发，定义了自己特有16字节长的Header，而一旦用了异构协议，HTTP，Grpc以及Thrift都有自己的Header；    
+>> 包括底层线程模型、IO模型也直接取决于第三方实现，例如Http体系的定义了HttpBind，实现可以用Tomcat、Jetty、Netty等、另外2个Grpc和Thrift的底层模型也有引入的jar包决定；   
+>> 看得出来，新增的协议应该就是为了支持异构系统，未来可以将项目中的一个服务，既用Dubbo暴露，也可以用其他异构协议暴露。    
 
 #### Filter扩展点
 #### ExporterListener、InvokerListener 扩展点

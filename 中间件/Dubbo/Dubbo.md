@@ -105,6 +105,11 @@ AdaptiveExtensionFactory作为ExtensionLoader的默认实现，内部实际是�
 
 #### Dubbo的Injvm协议是干嘛用的？
 
+#### Dubbo的Protocol层设计理念
+> 1.个人理解是收拢了RPC调用，将上层一切对象封装成Invoker，然后屏蔽了下层remoting的实现细节，这种解耦好处在于为Dubbo支持异构系统打下了基础。  
+> 2.Protocol层其实定义了弹性与限制，例如DubboProtocol，下层Transporter层可支持Mina、Netty，Serilization层支持多种序列化格式，但同时也定义了限制，例如下层必须使用异步线程模型(Exchange层就是为此而存在，如果基于Protocol扩展出Socket实现，完全可以抛弃Exchange层)；又例如新增的HessianProtocol、GrpcProtocl和ThriftProtocol，Dubbo的扩展点在这些新的Protocol中几乎失效，弹性和限制完全依赖于第三方实现。
+
+
 #### Dubbo消费者中是如何将多个注册中心转成一个Invoker的？
 
 #### Exchange层存在的目的是什么？
