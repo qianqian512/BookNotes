@@ -65,9 +65,8 @@ public class SocketProtocol implements Protocol {
 	@SuppressWarnings({ "resource" })
 	public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
 		// 这里的地址应该从url里取
-		Socket socket;
 		try {
-			socket = new Socket("localhost", 20880);
+			Socket socket = new Socket(url.getParameter(Constants.BIND_IP_KEY, "localhost"), url.getParameter(Constants.BIND_PORT_KEY, getDefaultPort()));
 			return new AbstractInvoker<T>(type, url) {
 				@Override
 				protected Result doInvoke(Invocation invocation) throws Throwable {

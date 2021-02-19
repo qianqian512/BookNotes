@@ -38,9 +38,9 @@ public class SpayProxyFactory implements ProxyFactory {
 				System.out.println("SpayProxyFactory.invoke " + invocation.getMethodName());
 				try {
 					Object result = type.getMethod(invocation.getMethodName(), invocation.getParameterTypes()).invoke(proxy, invocation.getArguments());
-					return new AppResponse(result);
+					return new SyncResponse(result);
 				} catch (Exception e) {
-					AppResponse resp = new AppResponse();
+					SyncResponse resp = new SyncResponse();
 					resp.setException(e);
 					return resp;
 				}

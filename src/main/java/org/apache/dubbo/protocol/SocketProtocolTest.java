@@ -31,6 +31,9 @@ public class SocketProtocolTest {
 		serviceConfig.setProtocol(new ProtocolConfig("socket", 20880));
 		serviceConfig.export();
 		System.out.println("export");
+		// 1.让ExtensionLoader加载Protocol时禁用Wrapper
+		// 2.返回异步结果
+		// ERROR!!!! at org.apache.dubbo.rpc.protocol.ProtocolFilterWrapper$1.invoke(ProtocolFilterWrapper.java:103)
 		System.in.read();
 	}
 
@@ -47,7 +50,7 @@ public class SocketProtocolTest {
 	
 	@Test
 	public void test() {
-		Protocol filter = ExtensionLoader.getExtensionLoader(Protocol.class).getExtension("filter");
+		Protocol filter = ExtensionLoader.getExtensionLoader(Protocol.class).getExtension("socket");
 		System.out.println(filter);
 	}
 }
