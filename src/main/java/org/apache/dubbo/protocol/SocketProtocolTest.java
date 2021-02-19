@@ -4,12 +4,14 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.dubbo.common.extension.ExtensionLoader;
 import org.apache.dubbo.config.ApplicationConfig;
 import org.apache.dubbo.config.ProtocolConfig;
 import org.apache.dubbo.config.ReferenceConfig;
 import org.apache.dubbo.config.RegistryConfig;
 import org.apache.dubbo.config.ServiceConfig;
 import org.apache.dubbo.remoting.exchange.Request;
+import org.apache.dubbo.rpc.Protocol;
 import org.apache.dubbo.user.UserService;
 import org.apache.dubbo.user.UserServiceImpl;
 import org.junit.Test;
@@ -41,5 +43,11 @@ public class SocketProtocolTest {
 		referneceConfig.setUrl("socket://localhost:20880?timeout=1000000");
 		referneceConfig.setInterface(UserService.class);
 		System.out.println(referneceConfig.get().sayHello("333"));
+	}
+	
+	@Test
+	public void test() {
+		Protocol filter = ExtensionLoader.getExtensionLoader(Protocol.class).getExtension("filter");
+		System.out.println(filter);
 	}
 }
