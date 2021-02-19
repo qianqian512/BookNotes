@@ -123,7 +123,8 @@ public class SocketProtocol implements Protocol {
 					        }
 					        
 					        // 抛开了Request和Response，直接面向invocation和result
-					        Result result = exporter.getInvoker().invoke(invocation);
+					        Invoker<?> invoker = exporter.getInvoker();
+					        Result result = invoker.invoke(invocation);
 							ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
 							oos.writeObject(result);
 							
