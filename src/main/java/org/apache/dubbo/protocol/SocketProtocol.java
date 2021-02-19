@@ -5,9 +5,6 @@ import static org.apache.dubbo.common.constants.CommonConstants.PATH_KEY;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Map;
@@ -26,6 +23,7 @@ import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcException;
 import org.apache.dubbo.rpc.RpcInvocation;
 import org.apache.dubbo.rpc.protocol.AbstractExporter;
+import org.apache.dubbo.rpc.protocol.AbstractInvoker;
 
 /**
  * TODO Transport用Socket实现，忽略Exchange层，支持序列化，header还是遵循Dubbo报文格式
@@ -64,34 +62,27 @@ public class SocketProtocol implements Protocol {
 	}
 
 	@Override
-	@SuppressWarnings({ "unchecked", "resource" })
+	@SuppressWarnings({ "resource" })
 	public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
 		// 这里的地址应该从url里取
 		Socket socket;
 		try {
 			socket = new Socket("localhost", 20880);
-			// 2.根据classType，生成代理对象 Stub
-			return (Invoker<T>) Proxy.newProxyInstance(type.getClassLoader(), new Class[] { Invoker.class },
-					new InvocationHandler() {
-						@Override
-						public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-
-							// 1.生成Invocation对象
-							RpcInvocation invocation = new RpcInvocation();
-							invocation.setMethodName(method.getName());
-							invocation.setParameterTypes(method.getParameterTypes());
-							invocation.setArguments(args);
-							invocation.setObjectAttachment(PATH_KEY, type.getName());
-
-							// 2.将Invocation传输到Server端
-							ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-							oos.writeObject(invocation);
-
-							// 3.等待Server的Response
-							ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-							return ois.readObject();
-						}
-					});
+			return new AbstractInvoker<T>(type, url) {
+				@Override
+				protected Result doInvoke(Invocation invocation) throws Throwable {
+					ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+					RpcInvocation rpcInvocation = new RpcInvocation();
+					rpcInvocation.setMethodName(invocation.getMethodName());
+					rpcInvocation.setArguments(invocation.getArguments());
+					rpcInvocation.setObjectAttachment(PATH_KEY, type.getName());
+					rpcInvocation.setObjectAttachment("param_types", invocation.getParameterTypes());
+					oos.writeObject(rpcInvocation);
+					oos.flush();
+					ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+					return (Result) ois.readObject();
+				}
+			};
 		} catch (Exception e) {
 			throw new RuntimeException("refer error, error=" + e.getMessage());
 		}
@@ -122,9 +113,10 @@ public class SocketProtocol implements Protocol {
 					ExecutorService.execute(() -> {
 						try {
 							ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-							Invocation invocation = (Invocation) ois.readObject();
+							RpcInvocation invocation = (RpcInvocation) ois.readObject();
 							String path = (String) invocation.getObjectAttachments().get(PATH_KEY);
 							Exporter<?> exporter = ExporterMap.get(path);
+							invocation.setParameterTypes((Class<?>[]) invocation.getObjectAttachment("param_types"));
 
 					        if (exporter == null) {
 					            throw new RuntimeException("Not found exported service: " + path + " in " + ExporterMap.keySet());
