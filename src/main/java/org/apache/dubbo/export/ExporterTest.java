@@ -68,7 +68,7 @@ public class ExporterTest {
 		System.out.println(referneceConfig.get().sayHello("333"));
 	}
 	
-	public void initDubboEnv() {
+	public static void initDubboEnv() {
 		// init config
         ConfigManager configManager = ApplicationModel.getConfigManager();
         configManager.setApplication(new ApplicationConfig("huming-test"));

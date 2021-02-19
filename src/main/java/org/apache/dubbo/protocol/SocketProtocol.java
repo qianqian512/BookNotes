@@ -16,12 +16,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import javax.management.RuntimeErrorException;
-
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.remoting.Constants;
-import org.apache.dubbo.remoting.RemotingException;
-import org.apache.dubbo.remoting.exchange.Response;
 import org.apache.dubbo.rpc.Exporter;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
@@ -75,7 +71,7 @@ public class SocketProtocol implements Protocol {
 		try {
 			socket = new Socket("localhost", 20880);
 			// 2.根据classType，生成代理对象 Stub
-			return (Invoker<T>) Proxy.newProxyInstance(type.getClassLoader(), new Class[] { type },
+			return (Invoker<T>) Proxy.newProxyInstance(type.getClassLoader(), new Class[] { Invoker.class },
 					new InvocationHandler() {
 						@Override
 						public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
@@ -85,7 +81,7 @@ public class SocketProtocol implements Protocol {
 							invocation.setMethodName(method.getName());
 							invocation.setParameterTypes(method.getParameterTypes());
 							invocation.setArguments(args);
-							invocation.getObjectAttachments().put(PATH_KEY, type.getName());
+							invocation.setObjectAttachment(PATH_KEY, type.getName());
 
 							// 2.将Invocation传输到Server端
 							ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
