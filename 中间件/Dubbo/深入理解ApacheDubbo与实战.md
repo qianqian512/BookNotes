@@ -149,7 +149,7 @@
 >> 【Config层】Config是发布服务的配置，应用项目中的注解、Xml等配置最终都是转成通用的ServiceConfig对象，然后将ServiceConfig的配置转成通用的URL，URL是贯穿整个Dubbo的通用模型；  
 >> 【Proxy层】Proxy定义了采用何种方式，将URL和ServerInstance包装成Invoker，缺省实现是javassist。在发布服务时Proxy层将URL+服务实例通过ProxyFactory转成Invoker对象     
 >> 【Protocol层】Invoker通过Protocol发布服务，默认发布协议采用DubboProtocol，通过createServer方法创建出ExchangeServer，以及DubboProtocol内部定义了ExchangeHandler   
->> 【Exchange层】定义了网络通信的抽象模型，例如心跳、重连，同步转异步？(无关具体通信协议，关注网络通信的通用逻辑)，发布服务是默认是用HeaderExchangeServer实现    
+>> 【Exchange层】DubboProtocol限定了传输层一定是NIO框架(Netty/Mina/Grizzly)，因此调用时就需要考虑同步异步相互转换，Exchange层就承接了这部分内容。    
 >> 【Transport层】定义了网络通信时，使用什么底层技术或框架，查看Dubbo的Transporter的SPI注解可以发现，默认是用过Netty4实现。  
 >> 【Serialize层】定义了采用哪种序列化方式，但发布服务时并没有指定序列化方式，而是根据消费者的请求中SerializationType决定的，默认通信用hessian2实现
 
