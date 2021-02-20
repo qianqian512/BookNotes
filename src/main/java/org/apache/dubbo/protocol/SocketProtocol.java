@@ -8,6 +8,7 @@ import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -15,6 +16,8 @@ import java.util.concurrent.Executors;
 
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.remoting.Constants;
+import org.apache.dubbo.rpc.AppResponse;
+import org.apache.dubbo.rpc.AsyncRpcResult;
 import org.apache.dubbo.rpc.Exporter;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
@@ -26,9 +29,8 @@ import org.apache.dubbo.rpc.protocol.AbstractExporter;
 import org.apache.dubbo.rpc.protocol.AbstractInvoker;
 
 /**
- * TODO Transport用Socket实现，忽略Exchange层，支持序列化，header还是遵循Dubbo报文格式
+ * Transport用Socket同步短连接实现，忽略Exchange层，JDK序列化，为了省事越过了Request和Response，直接面向Invocation和Result传输
  * @author hudaming
- *
  */
 public class SocketProtocol implements Protocol {
 
@@ -62,24 +64,36 @@ public class SocketProtocol implements Protocol {
 	}
 
 	@Override
-	@SuppressWarnings({ "resource" })
 	public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
 		// 这里的地址应该从url里取
 		try {
-			Socket socket = new Socket(url.getParameter(Constants.BIND_IP_KEY, "localhost"), url.getParameter(Constants.BIND_PORT_KEY, getDefaultPort()));
 			return new AbstractInvoker<T>(type, url) {
 				@Override
 				protected Result doInvoke(Invocation invocation) throws Throwable {
-					ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-					RpcInvocation rpcInvocation = new RpcInvocation();
-					rpcInvocation.setMethodName(invocation.getMethodName());
-					rpcInvocation.setArguments(invocation.getArguments());
-					rpcInvocation.setObjectAttachment(PATH_KEY, type.getName());
-					rpcInvocation.setObjectAttachment("param_types", invocation.getParameterTypes());
-					oos.writeObject(rpcInvocation);
-					oos.flush();
-					ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-					return (Result) ois.readObject();
+					Socket socket = new Socket(url.getParameter(Constants.BIND_IP_KEY, "localhost"), url.getParameter(Constants.BIND_PORT_KEY, getDefaultPort()));
+					ObjectOutputStream oos = null;
+					ObjectInputStream ois = null;
+					try {
+						oos = new ObjectOutputStream(socket.getOutputStream());
+						RpcInvocation rpcInvocation = new RpcInvocation();
+						rpcInvocation.setMethodName(invocation.getMethodName());
+						rpcInvocation.setArguments(invocation.getArguments());
+						rpcInvocation.setObjectAttachment(PATH_KEY, type.getName());
+						rpcInvocation.setObjectAttachment("param_types", invocation.getParameterTypes());
+						oos.writeObject(rpcInvocation);
+						oos.flush();
+						ois = new ObjectInputStream(socket.getInputStream());
+						AppResponse appResp = (AppResponse) ois.readObject();
+						return new AsyncRpcResult(CompletableFuture.completedFuture(appResp), invocation);
+					} finally {
+						if (ois != null) {
+							ois.close();
+						}
+						if (oos != null) {
+							oos.close();
+						}
+						socket.close();
+					}
 				}
 			};
 		} catch (Exception e) {
@@ -125,7 +139,9 @@ public class SocketProtocol implements Protocol {
 					        Invoker<?> invoker = exporter.getInvoker();
 					        Result result = invoker.invoke(invocation);
 							ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-							oos.writeObject(result);
+							AppResponse appResponse = new AppResponse(result.getValue());
+							appResponse.setException(result.getException());
+							oos.writeObject(appResponse);
 							
 							// 连接关闭
 							oos.close();

@@ -1,6 +1,6 @@
 package org.apache.dubbo.protocol;
 
-import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,16 +10,28 @@ import org.apache.dubbo.config.ProtocolConfig;
 import org.apache.dubbo.config.ReferenceConfig;
 import org.apache.dubbo.config.RegistryConfig;
 import org.apache.dubbo.config.ServiceConfig;
-import org.apache.dubbo.remoting.exchange.Request;
 import org.apache.dubbo.rpc.Protocol;
 import org.apache.dubbo.user.UserService;
 import org.apache.dubbo.user.UserServiceImpl;
 import org.junit.Test;
 
 public class SocketProtocolTest {
+	
+	private void clearProtocolWrapper() throws Exception {
+		ExtensionLoader<Protocol> extensionLoader = ExtensionLoader.getExtensionLoader(Protocol.class);
+		extensionLoader.getSupportedExtensions();
+		Field field = ExtensionLoader.class.getDeclaredField("cachedWrapperClasses");
+		field.setAccessible(true);
+		field.set(extensionLoader, null);
+		System.out.println("clear Protocol.cachedWrapperClasses");
+	}
 
 	@Test
-	public void testExport() throws IOException {
+	public void testExport() throws Exception {
+		// prepare: dubbo这里做的还是有缺陷，强行用户使用内置wrapper，并没有预留接口禁用，因此只能通过反射禁止
+		// clearProtocolWrapper();
+		
+		// export
 		Map<String, String> parameters = new HashMap<String, String>();
 		parameters.put("proxy", "spay_proxy");
 		ServiceConfig<UserService> serviceConfig = new ServiceConfig<UserService>();
@@ -39,18 +51,24 @@ public class SocketProtocolTest {
 
 	@Test
 	public void testReference0() {
-		new Request();
 		ReferenceConfig<UserService> referneceConfig = new ReferenceConfig<UserService>();
 		referneceConfig.setApplication(new ApplicationConfig("humking-f"));
 		referneceConfig.setProtocol("socket");
 		referneceConfig.setUrl("socket://localhost:20880?timeout=1000000");
 		referneceConfig.setInterface(UserService.class);
 		System.out.println(referneceConfig.get().sayHello("333"));
+		System.out.println(referneceConfig.get().sayHello("444"));
+		System.out.println(referneceConfig.get().sayHello("555"));
+		System.out.println(referneceConfig.get().sayHello("666"));
 	}
 	
 	@Test
-	public void test() {
-		Protocol filter = ExtensionLoader.getExtensionLoader(Protocol.class).getExtension("socket");
-		System.out.println(filter);
+	public void test() throws Exception {
+		ExtensionLoader<Protocol> extensionLoader = ExtensionLoader.getExtensionLoader(Protocol.class);
+		extensionLoader.getSupportedExtensions();
+		Field field = ExtensionLoader.class.getDeclaredField("cachedWrapperClasses");
+		field.setAccessible(true);
+		field.set(extensionLoader, null);
+		System.out.println(field.get(extensionLoader));
 	}
 }

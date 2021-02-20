@@ -5,47 +5,23 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
 import org.apache.dubbo.common.URL;
-import org.apache.dubbo.rpc.AppResponse;
-import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.ProxyFactory;
-import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcException;
 import org.apache.dubbo.rpc.RpcInvocation;
+import org.apache.dubbo.rpc.proxy.AbstractProxyInvoker;
 
 public class SpayProxyFactory implements ProxyFactory {
 
 	@Override
 	public <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url) throws RpcException {
-		return new Invoker<T>() {
-			@Override
-			public URL getUrl() {
-				return url;
-			}
-			@Override
-			public boolean isAvailable() {
-				return true;
-			}
-			@Override
-			public void destroy() {
-			}
-			@Override
-			public Class<T> getInterface() {
-				return type;
-			}
-			@Override
-			public Result invoke(Invocation invocation) throws RpcException {
-				System.out.println("SpayProxyFactory.invoke " + invocation.getMethodName());
-				try {
-					Object result = type.getMethod(invocation.getMethodName(), invocation.getParameterTypes()).invoke(proxy, invocation.getArguments());
-					return new SyncResponse(result);
-				} catch (Exception e) {
-					SyncResponse resp = new SyncResponse();
-					resp.setException(e);
-					return resp;
-				}
-			}
-		};
+		return new AbstractProxyInvoker<T>(proxy, type, url) {
+            @Override
+            protected Object doInvoke(T proxy, String methodName, Class<?>[] parameterTypes, Object[] arguments) throws Throwable {
+            	System.out.println("SpayProxyFactory.invoke " + methodName);
+                return type.getMethod(methodName, parameterTypes).invoke(proxy, arguments);
+            }
+        };
 	}
 
 	@Override
