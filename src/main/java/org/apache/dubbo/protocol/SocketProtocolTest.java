@@ -17,20 +17,9 @@ import org.junit.Test;
 
 public class SocketProtocolTest {
 	
-	private void clearProtocolWrapper() throws Exception {
-		ExtensionLoader<Protocol> extensionLoader = ExtensionLoader.getExtensionLoader(Protocol.class);
-		extensionLoader.getSupportedExtensions();
-		Field field = ExtensionLoader.class.getDeclaredField("cachedWrapperClasses");
-		field.setAccessible(true);
-		field.set(extensionLoader, null);
-		System.out.println("clear Protocol.cachedWrapperClasses");
-	}
 
 	@Test
 	public void testExport() throws Exception {
-		// prepare: dubbo这里做的还是有缺陷，强行用户使用内置wrapper，并没有预留接口禁用，因此只能通过反射禁止
-		// clearProtocolWrapper();
-		
 		// export
 		Map<String, String> parameters = new HashMap<String, String>();
 		parameters.put("proxy", "spay_proxy");
@@ -43,9 +32,6 @@ public class SocketProtocolTest {
 		serviceConfig.setProtocol(new ProtocolConfig("socket", 20880));
 		serviceConfig.export();
 		System.out.println("export");
-		// 1.让ExtensionLoader加载Protocol时禁用Wrapper
-		// 2.返回异步结果
-		// ERROR!!!! at org.apache.dubbo.rpc.protocol.ProtocolFilterWrapper$1.invoke(ProtocolFilterWrapper.java:103)
 		System.in.read();
 	}
 
