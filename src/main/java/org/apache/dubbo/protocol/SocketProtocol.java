@@ -43,15 +43,16 @@ public class SocketProtocol implements Protocol {
 	}
 	
 	private final Map<String, Exporter<?>> ExporterMap = new ConcurrentHashMap<String, Exporter<?>>(); 
+	private ServerSocket Server;
 
 	@Override
 	public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
 		
 		if (!isOpen) {
-			new Thread(new SocketServerStarter(invoker.getUrl().getParameter(Constants.BIND_PORT_KEY, getDefaultPort()))).start();
 			try {
+				new Thread(new SocketServerStarter(invoker.getUrl().getParameter(Constants.BIND_PORT_KEY, getDefaultPort()))).start();
 				startLatch.await();
-			} catch (InterruptedException e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 			isOpen = true;
@@ -103,26 +104,26 @@ public class SocketProtocol implements Protocol {
 
 	@Override
 	public void destroy() {
-		// TODO Auto-generated method stub
-		
+		try {
+			Server.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	class SocketServerStarter implements Runnable {
 		
-		private int port;
-		
-		public SocketServerStarter(int port) {
-			this.port = port;
+		public SocketServerStarter(int port) throws IOException {
+			Server = new ServerSocket(port);
 		}
 
 		@Override
 		public void run() {
 			try {
-				ServerSocket server = new ServerSocket(port);
 				ExecutorService ExecutorService = Executors.newFixedThreadPool(16);
 				startLatch.countDown();
 				while (true) {
-					Socket socket = server.accept();
+					Socket socket = Server.accept();
 					ExecutorService.execute(() -> {
 						try {
 							ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
