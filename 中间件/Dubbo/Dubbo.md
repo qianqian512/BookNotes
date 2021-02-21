@@ -109,16 +109,19 @@ AdaptiveExtensionFactory作为ExtensionLoader的默认实现，内部实际是�
 > 1.个人理解是收拢了RPC调用，将上层一切对象封装成Invoker，然后屏蔽了下层remoting的实现细节，这种解耦好处在于为Dubbo支持异构系统打下了基础。  
 > 2.Protocol层其实定义了弹性与限制，例如DubboProtocol，下层Transporter层可支持Mina、Netty，Serilization层支持多种序列化格式，但同时也定义了限制，例如下层必须使用异步线程模型(Exchange层就是为此而存在，如果基于Protocol扩展出Socket实现，完全可以抛弃Exchange层)；又例如新增的HessianProtocol、GrpcProtocl和ThriftProtocol，Dubbo的扩展点在这些新的Protocol中几乎失效，弹性和限制完全依赖于第三方实现。
 
-
 #### Dubbo消费者中是如何将多个注册中心转成一个Invoker的？
 
 #### Exchange层存在的目的是什么？
 
-#### Dubbo调用时序列化结构
+#### Dubbo调用时传输报文的头结构
+> Dubbo协议报文头一共16字节，前2字节为magicNumber，第三字节高4位是请求类型，第四位是序列化类型，第4字节是响应码，第5-12字节是RequestId，最后4字节是body长度。
 
 #### 对比Exchange层和Transport层的差异
 
 #### ProtocolListenerWrapper和ProtocolFilterWrapper区别
+
+#### Dubbo中Transport和Exchange的Handler分层
+> 读代码时发现这2层均有Handler实现，Transporter层以Netty为代表，关注的是解码协议和序列化，而Exchange层的实现更多是关注同步异步的转换。
 
 
 

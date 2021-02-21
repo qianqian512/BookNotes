@@ -1,0 +1,1 @@
+socket=org.apache.dubbo.transport.PiscesTransporter

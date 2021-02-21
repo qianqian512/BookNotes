@@ -1,1 +1,2 @@
 socket=org.apache.dubbo.protocol.SocketProtocol
+pisces=org.apache.dubbo.exchange.PiscesProtocol

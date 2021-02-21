@@ -1,8 +1,5 @@
 package org.apache.dubbo.exchange;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.dubbo.config.ApplicationConfig;
 import org.apache.dubbo.config.ProtocolConfig;
 import org.apache.dubbo.config.RegistryConfig;
@@ -16,15 +13,12 @@ public class ExchangeTest {
 	@Test
 	public void testExport() throws Exception {
 		// export
-		Map<String, String> parameters = new HashMap<String, String>();
-		parameters.put("exchanger", "myExchanger");
 		ServiceConfig<UserService> serviceConfig = new ServiceConfig<UserService>();
 		serviceConfig.setApplication(new ApplicationConfig("huming-test"));
 		serviceConfig.setRegistry(new RegistryConfig("N/A"));
 		serviceConfig.setInterface(UserService.class);
 		serviceConfig.setRef(new UserServiceImpl());
-		serviceConfig.setParameters(parameters);
-		serviceConfig.setProtocol(new ProtocolConfig("dubbo", 20880));
+		serviceConfig.setProtocol(new ProtocolConfig("pisces", 20880));
 		serviceConfig.export();
 		System.out.println("export");
 		System.in.read();
