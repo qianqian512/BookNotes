@@ -11,7 +11,7 @@ import org.apache.dubbo.user.UserService;
 import org.apache.dubbo.user.UserServiceImpl;
 import org.junit.Test;
 
-public class ExchangeText {
+public class ExchangeTest {
 
 	@Test
 	public void testExport() throws Exception {

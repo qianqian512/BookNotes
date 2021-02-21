@@ -15,11 +15,11 @@ import org.apache.dubbo.remoting.RemotingServer;
 import org.apache.dubbo.remoting.exchange.ExchangeChannel;
 import org.apache.dubbo.remoting.exchange.ExchangeServer;
 
-public class MyExchangeServer implements ExchangeServer {
+public class PiscesExchangeServer implements ExchangeServer {
 
     private final RemotingServer server;
     
-    public MyExchangeServer(RemotingServer server) {
+    public PiscesExchangeServer(RemotingServer server) {
     	this.server = server;
     }
 
@@ -30,7 +30,7 @@ public class MyExchangeServer implements ExchangeServer {
 
 	@Override
 	public Collection<Channel> getChannels() {
-		return null;
+		return server.getChannels();
 	}
 
 	@Override
@@ -91,7 +91,7 @@ public class MyExchangeServer implements ExchangeServer {
 			return Collections.emptyList();
 		}
 		channels.forEach(channel -> {
-			channelList.add(new MyExchangeChannel(channel));
+			channelList.add(new PiscesExchangeChannel(channel));
 		});
 		
 		return channelList;
@@ -99,8 +99,7 @@ public class MyExchangeServer implements ExchangeServer {
 
 	@Override
 	public ExchangeChannel getExchangeChannel(InetSocketAddress remoteAddress) {
-		// TODO Auto-generated method stub
-		return null;
+		return new PiscesExchangeChannel(server.getChannel(remoteAddress));
 	}
 
 	@Override

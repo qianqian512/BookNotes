@@ -1,1 +1,1 @@
-myExchanger=org.apache.dubbo.exchange.MyExchanger
+myExchanger=org.apache.dubbo.exchange.PiscesExchanger
