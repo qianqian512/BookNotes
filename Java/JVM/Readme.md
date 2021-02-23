@@ -79,7 +79,7 @@
 > 1.强引用：无论在任何时候，都不会被GC掉
 > 2.软引用：当GC后发现内存仍然不足，此时会清理软引用。	
 > 3.弱引用：只要发生GC就会清理掉弱引用。使用场景：ThreadLocal中Map的Entry，Tomcat中的ConcurrentCache。  
-> 4.虚引用：只要GC就会被清理掉，通过WeakReferenceQueue可以监听到被GC事件，例如用来监听Direct内存被回收的场景。
+> 4.虚引用：只要GC就会被清理掉，通过WeakReferenceQueue可以监听到被GC事件，例如用来监听Direct内存被回收的场景。Dubbo的Proxy也是用到了虚引用
 
 ####参考资料
 > JMM和底层实现原理: https://www.jianshu.com/p/8a58d8335270  

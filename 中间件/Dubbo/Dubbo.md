@@ -123,6 +123,10 @@ AdaptiveExtensionFactory作为ExtensionLoader的默认实现，内部实际是�
 #### Dubbo中Transport和Exchange的Handler分层
 > 读代码时发现这2层均有Handler实现，Transporter层以Netty为代表，关注的是解码协议和序列化，而Exchange层的实现更多是关注同步异步的转换。
 
+#### Dubbo调用过程
+> Protocol层(从ReferenceConfig到DubboInvoker)：由Proxy对象发起调用，Proxy是一个实现了JDK InvocationHandler的代理类，内部会持有Invoker对象，当发起任何调用时，会将调用的目标方法以及参数包装成一个RpcInvocation对象传入给Invoker，然后由Invoker是对远端RPC调用。    
+> Exchange层：DubboInvoke.doInvoke时，其内部创建一个ExchangeClient，这层是为了将同步请求转成异步请求；然后调用NettyAPI发起调用  
+> Transport层：Exchange层send invocation对象时，会经历Netty定义的Handler，Netty定义的Handler主要有2个，一个是codec，一个就是Exchange层传入的Handler；codec主要是用于编解码，将上层的Invocation和Result对象转成Request和Response；而Exchange的Handler处理同步异步的转换  
 
 
 
