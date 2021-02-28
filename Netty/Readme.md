@@ -65,8 +65,14 @@ ByteBuf byteBuf = Unpooled.wrappedBuffer(bytes);
 #### EventLoop中ioRatio的作用
 > EventLoop主要职责是处理IO事件和执行任务，其中ioRatio代表线程执行IO时间占用百分比。
 
+#### 对比ScheduledThreadPoolExecutor和EventLoop
+> ScheduledThreadPoolExecutor实现原理：本身继承于ThreadPoolExecutor，额外实现了延迟调度功能。在调用schedule方法时，会执行如下步骤：
+>> 1.将task放入到taskQueue中，这里的taskQueue是ScheduledThreadPoolExecutor专有实现的一个队列DelayedWorkQueue
+>> 2.初始化workers，然后通过worker消费taskQueue，worker消费queue数据调用getTask方法时，会调用子类实现的DelayedWorkQueue take方法来获取时间线上最近一个要执行的任务  
+>> 3.DelayedWorkQueue内部维护了一个小根堆，在offer时，会按照时间线从近到远升序排列(即数组的第一个元素是最近要执行的，越往后是越远要执行的)；在take方法出队时，会获取第一个元素，如果尚未达到执行时间，会计算出要等待的时间，然后用condition.awaitNanos
+>> * <font color="blue">这里为什么要选用heap数据结构，siftUp(当前元素与上一层元素交换)和siftDown(当前元素若与下一层元素交换)</font>  
 
-
+> EventLoop实现原理：基于Reactor模型
 
 
 
