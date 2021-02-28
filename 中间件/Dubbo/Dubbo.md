@@ -130,7 +130,9 @@ AdaptiveExtensionFactory作为ExtensionLoader的默认实现，内部实际是�
 > Transport层：Exchange层send invocation对象时，会经历Netty定义的Handler，Netty定义的Handler主要有2个，一个是codec，一个就是Exchange层传入的Handler；codec主要是用于编解码，将上层的Invocation和Result对象转成Request和Response；而Exchange的Client+Future处理同步异步的转换  
 > Serilization层：Dubbo在引用服务时，就已经在OutputHandler层面决定了序列化的类型，Exchange.send -> Transport.writeAndFlush -> Transport.EncodeHandler
 接收
-> Serilization层：
+> Serilization层：对Response进行Decode，然后交给上层ExchangeHandler处理
+> Transport层：接收是，Transport层没有特殊逻辑
+> Exchange层：根据Response的Id找到Dubbo的Future对象，将Response对象放入Future后即通知线程响应数据已准备好，此时恢复线程执行即可
 
 
 
