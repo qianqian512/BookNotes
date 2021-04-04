@@ -259,6 +259,7 @@ import java.util.stream.Stream;
  * @param <K> the type of keys maintained by this map
  * @param <V> the type of mapped values
  */
+@SuppressWarnings({ "unchecked", "restriction", "rawtypes" })
 public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     implements ConcurrentMap<K,V>, Serializable {
     private static final long serialVersionUID = 7249069246763182397L;
@@ -721,7 +722,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * Returns k.compareTo(x) if x matches kc (k's screened comparable
      * class), else 0.
      */
-    @SuppressWarnings({"rawtypes","unchecked"}) // for cast to Comparable
     static int compareComparables(Class<?> kc, Object k, Object x) {
         return (x == null || x.getClass() != kc ? 0 :
                 ((Comparable)k).compareTo(x));
@@ -745,7 +745,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * writes to be conservative.
      */
 
-    @SuppressWarnings("unchecked")
     static final <K,V> Node<K,V> tabAt(Node<K,V>[] tab, int i) {
         return (Node<K,V>)U.getObjectVolatile(tab, ((long)i << ASHIFT) + ABASE);
     }
@@ -786,6 +785,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * when table is null, holds the initial table size to use upon
      * creation, or 0 for default. After initialization, holds the
      * next element count value upon which to resize the table.
+     * 
+     * Table的初始化标识和扩容/收敛控制器，当sizeCtl等于负数时，表示table正处于初始化
+     * 或者扩容/收敛：例如-1代表初始化；除了-1以外的其他负数，数字部分代表正在参与扩容的
+     * 线程数。另外，当table为空的时候，.....初始化完成后，用来保存下一次要扩容的长度。
      */
     private transient volatile int sizeCtl;
 
@@ -1424,7 +1427,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
         int segmentShift = 32 - sshift;
         int segmentMask = ssize - 1;
-        @SuppressWarnings("unchecked")
         Segment<K,V>[] segments = (Segment<K,V>[])
             new Segment<?,?>[DEFAULT_CONCURRENCY_LEVEL];
         for (int i = 0; i < segments.length; ++i)
@@ -1468,9 +1470,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         long size = 0L;
         Node<K,V> p = null;
         for (;;) {
-            @SuppressWarnings("unchecked")
             K k = (K) s.readObject();
-            @SuppressWarnings("unchecked")
             V v = (V) s.readObject();
             if (k != null && v != null) {
                 p = new Node<K,V>(spread(k.hashCode()), k, v, p);
@@ -1489,7 +1489,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 int sz = (int)size;
                 n = tableSizeFor(sz + (sz >>> 1) + 1);
             }
-            @SuppressWarnings("unchecked")
             Node<K,V>[] tab = (Node<K,V>[])new Node<?,?>[n];
             int mask = n - 1;
             long added = 0L;
@@ -2266,7 +2265,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     	// 原变量n：代表table要初始化的长度
                         int tableNeedInitLen = (sizeCtlCopy > 0) ? sizeCtlCopy : DEFAULT_CAPACITY;
                         // 初始化table
-                        @SuppressWarnings("unchecked")
                         Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[tableNeedInitLen];
                         // 刷新主存的table
                         table = tabbleCopy = nt;
@@ -2330,7 +2328,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
         /************************************ 扩容 **********************************************/
         /**
-         * 1.自旋判断是否满足扩容条件
+         * 1.自旋判断是否满足扩容条件(即长度超过了阈值)
          * 2.计算「扩容标识戳」
          * 3.判断是否已经触发了扩容
          *  3.1如果当前Map实例正在扩容中(sizeCtl<0)，则校验当前线程是否满足扩容条件
@@ -2374,12 +2372,16 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      */
     final Node<K,V>[] helpTransfer(Node<K,V>[] tab, Node<K,V> f) {
         Node<K,V>[] nextTab; int sc;
-        // 如果当前
+        // 如果当前节点f正处于扩容状态
         if (tab != null && (f instanceof ForwardingNode) && (nextTab = ((ForwardingNode<K,V>)f).nextTable) != null) {
         	// XXX
             int rs = resizeStamp(tab.length);
             // 如果处于扩容中
             while (nextTab == nextTable && table == tab && (sc = sizeCtl) < 0) {
+            	// 如果 sc 的高 16 位不等于 标识符（校验异常 sizeCtl 变化了）
+                // 如果 sc == 标识符 + 1 （扩容结束了，不再有线程进行扩容）（默认第一个线程设置 sc ==rs 左移 16 位 + 2，当第一个线程结束扩容了，就会将 sc 减一。这个时候，sc 就等于 rs + 1）
+                // 如果 sc == 标识符 + 65535（帮助线程数已经达到最大）
+                // 如果 nextTable == null（结束扩容了）
                 if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 || sc == rs + MAX_RESIZERS || transferIndex <= 0) {
                     break;
                 }
@@ -2409,7 +2411,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 if (U.compareAndSwapInt(this, SIZECTL, sc, -1)) {
                     try {
                         if (table == tab) {
-                            @SuppressWarnings("unchecked")
                             Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n];
                             table = nt;
                             sc = n - (n >>> 2);
@@ -2455,11 +2456,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             stride = MIN_TRANSFER_STRIDE; // subdivide range
         }
         /**
-         * 扩容第一步，分配内存空间，创建一个更大的table
+         * 1.扩容第一步，分配内存空间，创建一个更大的table
          */
         if (nextTab == null) {            // initiating
             try {
-                @SuppressWarnings("unchecked")
                 Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n << 1];
                 nextTab = nt;
             } catch (Throwable ex) {      // try to cope with OOME
@@ -2485,6 +2485,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
          */
         for (int i = 0, bound = 0;;) {
             Node<K,V> f; int fh;
+            /** 确定本轮要迁移的起始位置，bound为本轮终点位置；i是本轮迁移起点位置 **/
             while (advance) {
                 int nextIndex, nextBound;
                 // 迁移到边界，或已完成，则退出
@@ -2507,6 +2508,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             }
             /**
              * 自旋退出条件判断
+             *    由于i代表迁移起始位置，因此当i<0时代表已经迁移到数组的最左侧
              */
             if (i < 0 || i >= n || i + n >= nextn) {
                 int sc;
@@ -2670,18 +2672,18 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         boolean collide = false;                // True if last slot nonempty
         for (;;) {
             CounterCell[] as; CounterCell a; int n; long v;
+            // 如果cells不等于空，则尝试在cells中找到对应的cell，在value上+1
             if ((as = counterCells) != null && (n = as.length) > 0) {
                 if ((a = as[(n - 1) & h]) == null) {
+                	// 代码走到这里，往往是cells已经初始化了，但对应的cells[i]位置是空的，需要初始化cells[i]位置
                     if (cellsBusy == 0) {            // Try to attach new Cell
                         CounterCell r = new CounterCell(x); // Optimistic create
-                        if (cellsBusy == 0 &&
-                            U.compareAndSwapInt(this, CELLSBUSY, 0, 1)) {
+                        // double-check，抢到锁的线程有权初始化cells[i]
+                        if (cellsBusy == 0 && U.compareAndSwapInt(this, CELLSBUSY, 0, 1)) {
                             boolean created = false;
                             try {               // Recheck under lock
                                 CounterCell[] rs; int m, j;
-                                if ((rs = counterCells) != null &&
-                                    (m = rs.length) > 0 &&
-                                    rs[j = (m - 1) & h] == null) {
+                                if ((rs = counterCells) != null && (m = rs.length) > 0 && rs[j = (m - 1) & h] == null) {
                                     rs[j] = r;
                                     created = true;
                                 }
@@ -2695,16 +2697,20 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     }
                     collide = false;
                 }
+                // Flow2702: 第一次竞争失败，走到下面重新hash然后再竞争；wasUncontended置位true期望下次逻辑再失败就走到Flow2703
                 else if (!wasUncontended)       // CAS already known to fail
                     wasUncontended = true;      // Continue after rehash
+                // Flow2703: 因为上一次自旋已经重新计算了hash值(参见Flow2702)，因此这里再次尝试修改新的Cells[i]的值
                 else if (U.compareAndSwapLong(a, CELLVALUE, v = a.value, v + x))
                     break;
+                // 避免无休止扩容，保证Cells的长度小于CPU数量（因为没有IO，属于计算密集型，因此比较理想的情况就是线程数=CPU数，每个线程自己持有一个CountCell来保证并发效率）
                 else if (counterCells != as || n >= NCPU)
                     collide = false;            // At max size or stale
+                // 如果代码走到这里，说明自旋时至少经历了竞争1次失败，即Flow2703，而走到这里是期望如果重新计算hash值后再次竞争失败，则LongAdder要进入扩容流程。
                 else if (!collide)
                     collide = true;
-                else if (cellsBusy == 0 &&
-                         U.compareAndSwapInt(this, CELLSBUSY, 0, 1)) {
+                // 经过2次自旋竞争失败后，那么LongAdder开始进行扩容，扩容时新的节点直接在新的Cell上加1即可
+                else if (cellsBusy == 0 && U.compareAndSwapInt(this, CELLSBUSY, 0, 1)) {
                     try {
                         if (counterCells == as) {// Expand table unless stale
                             CounterCell[] rs = new CounterCell[n << 1];
@@ -2718,8 +2724,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     collide = false;
                     continue;                   // Retry with expanded table
                 }
+                // 进行rehash，尝试落到其他slot下，看看是否能修改成功
                 h = ThreadLocalRandom.advanceProbe(h);
             }
+            // 如果cells等于，则通过CAS抢锁，成功的可以初始化cells
             else if (cellsBusy == 0 && counterCells == as &&
                      U.compareAndSwapInt(this, CELLSBUSY, 0, 1)) {
                 boolean init = false;
@@ -2736,6 +2744,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 if (init)
                     break;
             }
+            // 对Cells并发修改失败，则再尝试修改BaseCount
             else if (U.compareAndSwapLong(this, BASECOUNT, v = baseCount, v + x))
                 break;                          // Fall back on using base
         }
@@ -4568,7 +4577,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             return (i == n) ? r : Arrays.copyOf(r, i);
         }
 
-        @SuppressWarnings("unchecked")
         public final <T> T[] toArray(T[] a) {
             long sz = map.mappingCount();
             if (sz > MAX_ARRAY_SIZE)
@@ -5487,7 +5495,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     ReduceKeysTask<K,V>
                         t = (ReduceKeysTask<K,V>)c,
                         s = t.rights;
@@ -5535,7 +5542,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     ReduceValuesTask<K,V>
                         t = (ReduceValuesTask<K,V>)c,
                         s = t.rights;
@@ -5581,7 +5587,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     ReduceEntriesTask<K,V>
                         t = (ReduceEntriesTask<K,V>)c,
                         s = t.rights;
@@ -5635,7 +5640,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     MapReduceKeysTask<K,V,U>
                         t = (MapReduceKeysTask<K,V,U>)c,
                         s = t.rights;
@@ -5689,7 +5693,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     MapReduceValuesTask<K,V,U>
                         t = (MapReduceValuesTask<K,V,U>)c,
                         s = t.rights;
@@ -5743,7 +5746,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     MapReduceEntriesTask<K,V,U>
                         t = (MapReduceEntriesTask<K,V,U>)c,
                         s = t.rights;
@@ -5797,7 +5799,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     MapReduceMappingsTask<K,V,U>
                         t = (MapReduceMappingsTask<K,V,U>)c,
                         s = t.rights;
@@ -5850,7 +5851,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     MapReduceKeysToDoubleTask<K,V>
                         t = (MapReduceKeysToDoubleTask<K,V>)c,
                         s = t.rights;
@@ -5900,7 +5900,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     MapReduceValuesToDoubleTask<K,V>
                         t = (MapReduceValuesToDoubleTask<K,V>)c,
                         s = t.rights;
@@ -5950,7 +5949,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     MapReduceEntriesToDoubleTask<K,V>
                         t = (MapReduceEntriesToDoubleTask<K,V>)c,
                         s = t.rights;
@@ -6000,7 +5998,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     MapReduceMappingsToDoubleTask<K,V>
                         t = (MapReduceMappingsToDoubleTask<K,V>)c,
                         s = t.rights;
@@ -6050,7 +6047,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     MapReduceKeysToLongTask<K,V>
                         t = (MapReduceKeysToLongTask<K,V>)c,
                         s = t.rights;
@@ -6100,7 +6096,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     MapReduceValuesToLongTask<K,V>
                         t = (MapReduceValuesToLongTask<K,V>)c,
                         s = t.rights;
@@ -6150,7 +6145,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     MapReduceEntriesToLongTask<K,V>
                         t = (MapReduceEntriesToLongTask<K,V>)c,
                         s = t.rights;
@@ -6200,7 +6194,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     MapReduceMappingsToLongTask<K,V>
                         t = (MapReduceMappingsToLongTask<K,V>)c,
                         s = t.rights;
@@ -6250,7 +6243,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     MapReduceKeysToIntTask<K,V>
                         t = (MapReduceKeysToIntTask<K,V>)c,
                         s = t.rights;
@@ -6300,7 +6292,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     MapReduceValuesToIntTask<K,V>
                         t = (MapReduceValuesToIntTask<K,V>)c,
                         s = t.rights;
@@ -6350,7 +6341,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     MapReduceEntriesToIntTask<K,V>
                         t = (MapReduceEntriesToIntTask<K,V>)c,
                         s = t.rights;
@@ -6400,7 +6390,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 result = r;
                 CountedCompleter<?> c;
                 for (c = firstComplete(); c != null; c = c.nextComplete()) {
-                    @SuppressWarnings("unchecked")
                     MapReduceMappingsToIntTask<K,V>
                         t = (MapReduceMappingsToIntTask<K,V>)c,
                         s = t.rights;
