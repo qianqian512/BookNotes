@@ -149,11 +149,13 @@
 【SortedSet】- 有序集合 = zadd/zrange/zincrby - 压缩列表，跳表
     当集合元素内少于1024个时，使用ziplist存储；反之使用skiplist
  
-#### Redis存储结构实现
-
 #### Redis集群方案
 
 #### Redis使用经典场景的案例
+ 1.商品对应评论的关系：可以用list存储
+ 2.排行榜、最新列表：可以用sortedset存储
+ 3.统计不同页面的UV：用set存储每个用户的id，统计时直接用scard
+ 4.记录用户打卡
 
 
 #### Redis类型与底层存储结构的转换
