@@ -140,11 +140,11 @@
   	
   #### 对象（Object）
     What：准确的说，Object并不能算作是Redis数据类型底层的一种存储结构，它更像是对下层实现的封装，屏蔽了下层数据结构的切换，并实现了通用的逻辑（例如引用计数，LRU记录等）。
-  	Where：存储大于 44 个字节的字符串
+    Where：anywhere
      
   #### 快捷列表（quicklist）
     What：
-  	Where：存储大于 44 个字节的字符串
+    Where：存储大于 44 个字节的字符串
 
 #### redis数据类型和底层结构对应关系(什么时候会进行底层数据结构转换)
 【String】- 字符串 - set/get/mset/mget - sds/Object
