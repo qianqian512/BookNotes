@@ -18,7 +18,7 @@
    	  猜测应该主要是为了兼容c的api，所以遵循了原有c的格式。
   #### 链表
     What: Redis中的链表是一个双向无环链表。
-    Where: 链表作为List类型的底层存储结构之一以外，其他功能诸如发布订阅、慢查询、监视器等功能也用到链表，Redis服务端本身还用链表保存了多个客户端的状态信息。
+    Where: 链表作为List类型的底层存储结构之一，在数据存储达到一定规模后底层结构由ziplist转成linkedlist。
     list {
        head *listNode : 头节点
        tail *listNode : 尾节点
@@ -110,10 +110,8 @@
     			【int16】			（-3W ~ 3W）
     			【int32】			（-21亿 ~ 21亿）
     			【int64】			（略）
-  	Where：是“列表键”和“hash键”的底层实现之一，当满足下面3个条件一个时，redis会用ziplist作为存储结构
-  	        1) 列表键中元素数量较少
-  	        2) 每个元素均是小整数值
-  	        3) 长度比较短的字符串
+  	Where：ziplist作为Redis的3种数据类型的底层存储结构，其共同点都是仅单节点占用空间少，且列表总节点数量少时使用。
+  	Why：ziplist虽然节省空间，但修改起来会比较麻烦，尤其是连锁更新时，如果整个联调过长，会导致更新非常耗时。另一方面，如果单个节点占用空间过大，有什么问题呢？
 	【Q1】关于ziplist中node节点的encoding字段：
 		记录了节点的类型，使用一个字节保存了9种类型，高2位非11开头的3中数值代表content存的是数组；而高2位11开头的代表存的整数数值。这里还有一个极致的空间压缩，当encoding的高4位是1111，
 		但低4位不是0000和1110时，redis将0~12之间的value存储在低4位中，从而节省了content占用的空间，也就是说我们用的value是0~12之间的数字时，encoding既存了类型也存了value。
@@ -126,19 +124,41 @@
     What：
   	Where：存储大于 44 个字节的字符串
      
+  #### 快捷列表（quicklist）
+    What：
+  	Where：存储大于 44 个字节的字符串
 
-#### 4.redis数据类型和底层结构对应关系(什么时候会进行底层数据结构转换)
- String - 字符串 - set/get/mset/mget - sds/Object
- List - 线性数组 - lpush/lpop - 双向链表，压缩列表
- Hash - k-v存储 - hset/hget - 压缩列表，哈希表
- SortedSet - 有序集合 = zadd/zrange/zincrby - 压缩列表，跳表
- Set - 不能重复集合 - sadd/spop - 哈希表，整数集合
-  
+#### redis数据类型和底层结构对应关系(什么时候会进行底层数据结构转换)
+【String】- 字符串 - set/get/mset/mget - sds/Object
+ 	小于44长度时用sds存储；
+ 	超过44个字节时用object存储。
+ 	
+  大对象用sds存有问题吗？object存储浪费在哪里？
+ 	
+【List】- 线性数组 - lpush/lpop - 双向链表，压缩列表
+    怎么会一直使用quicklist
+
+【Hash】- k-v存储 - hset/hget - 压缩列表，哈希表
+    节点元素数量少时，用ziplist；节点数据量多时用hash。
+    单个节点占用空间小时，用ziplist；单个节点占用空间大时使用hash。
+    
+【Set】- 不能重复集合 - sadd/spop - 哈希表，整数集合
+    当集合内的数值都是整数是用intset；如果出现一个非整型字符，则使用hash存储。
+    当集合内元素数量少时可以用intset；如果集合内元素数量过多则使用hash存储。
+    
+【SortedSet】- 有序集合 = zadd/zrange/zincrby - 压缩列表，跳表
+    当集合元素内少于1024个时，使用ziplist存储；反之使用skiplist
+ 
 #### Redis存储结构实现
 
 #### Redis集群方案
 
 #### Redis使用经典场景的案例
+
+
+#### Redis类型与底层存储结构的转换
+ hash类型底层存储结构
+   ziplist或dict，当数据规模较小时使用ziplist，反之使用dict。较小被定义为：ziplist中每个节点长度小于64，整个ziplist长度小于512.
 
 
 
@@ -170,3 +190,4 @@
  ## Redis命令篇
  #### 查看一个key底层使用的存储结构
   object encoding [key]
+  或者通过：debug object [key]
