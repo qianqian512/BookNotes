@@ -1,0 +1,30 @@
+#### Redis是如何清理过期key的
+ 1.【存储层面】Redis针对有过期时间的key，都会统一额外保存到RedisServer节点的中一个dict类型的expires字段中，其中dict的key就是expired.key，dict.value则代表expired.time
+  [补充] expires中的key肯定也会存在db中，因此他们的key都是共享的对象，对于redis而言，每为一个key增加过期时间，不管key多长，只需要额外增加16字节存储即可（8字节指向db的key；8字节用于存long类型的毫秒数时间戳）
+ 2.【执行层面】Redis对过期键删除采用2种方式，一个是定期删除，一个是惰性删除。
+  a) 定期删除：类似JVM中的G1在GC时可以控制停顿时间，属于在清理过期和保证系统正常运行的一种折中方案。
+  b) 惰性删除：如果策略1的定期删除机制还没来得及删除这个key，此时有客户端来操作，那么redis会判断一下key的过期时间，如果过期则进行删除。
+  
+#### Redis是如何实现自动保存RDB文件的
+ 1.【存储层面】RedisServer中记录了2个字段，dirty(修改计数器)和lastsave(上一次执行修改的时间)，通过这两个字段实现了可以根据按时间、或按修改次数自动数据快照的方式。
+ 2.【执行层面】RedisServer有一个后台线程，会周期性(100ms)的被调用从而执行一些check的工作，其中一项工作就是判断是否需要执行RDB持久化，其判断条件就是对比redis配置与dirty、lastsave字段而决定。
+ 
+#### Redis运行期间，有2个List类型的key，一个较小用ziplist存储，一个较大用linkedlist存储。那么在持久化的时候，是用什么数据类型呢？
+ 还是保持原始的数据类型，不会以为持久化而改变编码模式，这样才能保证持久化前后数据的内存模型一致。
+
+#### RDB文件结构
+【实例部分】
+ 	| 魔数 | RDB版本号 | 数据内容 | EOF | 校验和 |
+【数据内容】
+	| SELECTDB_FLAG |  DB_INDEX | KV_PARIRS |
+【不带过期时间的kv】
+	| Type | key | value |
+【带过期时间的kv】
+	| EXPIRED_TIME_FLAG | EXPIRED_TIME | Type | key | value |
+【Type分类】
+	总结一下：Type的分类不是根据Redis数据类型，而是根据Redis存储结构进行的分类，这样的好处就是在反序列化RDB文件后，内存中的数据模型与持久化前一致。
+
+#### 项目中的生产环境，使用了哪种持久化模式?
+  通过info命令，可以查看到持久化方式。
+  
+  TODO 
