@@ -1,4 +1,6 @@
 1.跳表算法 参考SkipList
 2.想不明白一个问题，intset是一个有序数组，作为set类型的存储实现我能接受，但为什么不作为SortedSet的存储呢，大家共性都是有序啊？
+3.redis都有哪些淘汰策略，使用场景是什么？
+4.为什么要用quicklist，它是怎么在linkedlist和ziplist折中的？
 
 https://www.cnblogs.com/hunternet/p/12624691.html
