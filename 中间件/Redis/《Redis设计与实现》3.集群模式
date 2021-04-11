@@ -13,8 +13,56 @@
         受网络影响推送的可靠性无法保证，但slave通过心跳检测机制可以判断消息是否发生丢失。	
         在命令传播阶段，slave会启动一个后台线程，每隔1s向master汇报自己的同步偏移量，因此master收到后会主动对比，如果发现有偏差则会将偏差数据从缓冲区中捞出，并重新发送给slave。
 
- 2.slave在向master同步数据时，如果发生断线，怎么处理？
+ 2.slave在向master同步数据时，如果发生断线，怎么处理
    redis2.8版本以后，支持psync命令，针对断线后的数据，可以只是部分重传，整个过程如下：
      a) master收到slave的psync请求，请求信息中包含了serverId和offset
      b) master校验slave信息，通过serverId判断出master是否更换过节点；通过offset能够检测出主从数据是否一致。
      c) 当发生主从数据不一致时，master会判断slave的offset是否仍然存在于复制缓冲区中(复制缓冲区默认是1M空间，利用FIFO特性仅保留了最近时间修改的命令)，如果缓冲区中存在，则在缓冲区中找出差异数据发送给slave；如果不存在则触发全量同步。
+
+## 哨兵（Sentinel）
+ What：Redis的哨兵是用来保证Redis高可用的一种解决方案，可以监视master节点运行状态，当其不可用时自动选举出替代的slave成为新的master，以保证系统的可用性。
+   【疑问】哨兵观察到master挂掉，会重新从slave中重新选举新的master；如果slave节点突然不可用，哨兵会做什么动作呢？
+ How：哨兵是如何工作的
+   1.在启动后，哨兵会对集群中master和slave节点建立连接，处于监视状态（怎么监视？心跳机制？）
+     a) sentinel节点在启动后，会根据配置文件初始化master节点的配置，例如需要监视哪些master节点/判为主观下线的超时时间/刷新故障转移的超时时间等。
+     b) 在加载完master的配置后，sentinel就会对master节点建立2条网络连接，一个连接是用于发送命令，另一个连接适用于订阅master节点sentinel:hello频道的广播通知。
+       [思考]这里用2条连接的原因，书中原文说法是：
+        -- 在Redis目前发布与订阅功能中，被发送的信息都不会保存到Redis服务器里，如果在发送消息时，接收方不在线或断线，那么就会丢失了这条消息。因此为了不丢失sentinel:hello频道的任何消息，sentinel节点必须专门用一个订阅的连接来接受该频道的消息。
+       但仔细想想，即便是单独用一条专线来监听master的sentinel:hello频道，如果网络抖动消息仍然会丢失不是吗？
+     c) 在对master建立连接后，哨兵会每隔10s发送一个info命令来获取master服务器信息，其中拿到比较重要的信息就有这个master下slave的节点信息。
+       [补充] sentinel在配置文件中只有master信息，slave信息都是通过查询master动态获取，模型上完全解耦。
+     d) 在有了slave信息后，sentinel会与slave节点建立连接，并与master连接一样每隔10s发送一次info命令，用于获取slave节点的服务器信息。
+     e) sentinel节点记录了master和slave信息后，需要感知到集群内其他sentinel节点信息，以便后续方便讨论和决策，因此这时sentinel会向自己检测的master节点的sentinel:hello频道发消息，让集群内其他sentinel节点感知自己的存在。 
+        具体做法：sentinel节点会每隔2s向自己监视的所有节点发送sentinel:hello频道的消息，消息内容主要是2部分：一是当前哨兵信息(ip/端口/进程Id/epoch)；二是当前master节点信息(name/ip/端口/epoch)。
+     f) 集群内其他sentinel节点收到消息后，会记录发起广播的sentinel节点信息，以便后续随时通信。
+     g) 在有了其他sentinel节点的信息后，集群内的sentinel节点开始相互建立网络连接。
+     至此，启动阶段结束，下面进入监视阶段。
+   2.当master处于不可用时，哨兵会第一时间察觉；如果master下线时间超过sentinel配置的时长上限，sentinel就会对master节点进行故障转移
+     a) 监视阶段，sentinel会每隔1s向所有与自己建立连接的节点发送ping命令(所有节点包含master/slave/集群内其他sentinel节点)来判断它们是否在线。
+     b) 当目标节点没有在「规定时间内」进行「有效回复」时，sentinel就会判为这个节点为「主观下线」状态。
+       [规定时间]取决于sentinel配置文件的down-after-milliseconds字段
+       [有效回复]除了PONG/LOADING/MASTERDOWN命令以外都算无效回复
+       [补充]如果这里每个sentinel配置的down-after-milliseconds不同，则以各自配置为准即可。
+     c) 为了确认目标节点确实失效，sentinel需要和集群内其他sentinel节点进行讨论，判断是否「客观下线」
+        I. 	sentinel（这里暂称发起方）向其他sentinel节点发送 is-master-down 命令来征询其他节点的意见
+        II. 其他sentinel节点(这里暂称回复方)收到来自发送方的消息，解析出ip和端口，来判定目标节点状态，然后反馈结果。
+        III.发送方收到各个回复方的反馈进行计票，当判定失效票数超过自己的配置quorum字段时，最终判定该节点从「主观下线」变为「客观下线」
+     d) 此时已经有失效节点被判为客观下线，于是sentinel集群要选举出一个sentinel-leader来执行故障迁移
+        I.	 
+   3.首先sentinel会从失效master节点下的slave中选出一个最优的，然后升级成新的master，选举规则如下：
+     a) 先提出掉失效节点，确保在集合内都是有效节点。
+     b) 根据配置的优先级、数据版本、ID自然排序选出一个即将晋升master的节点。
+     c) sentinel-leader向新任master发送slaveof-no-one命令，让其晋升为新任master节点。
+     d) sentinel-leader向新任master每隔1s发送info命令(之前是每隔10s一次)，当发现info命令返回role字段从slave变成master，sentinel就知道被选中的服务器已经顺利晋升。
+       [思考]如果slave迟迟没有变呢？sentinel会怎么办？
+   4.然后sentinel会向原master下的slave节点发出指令，告知master节点信息变更，从新任master同步数据
+     a) sentinel-leader通过slaveof命令指挥落选的slave节点重新挂载新任master
+   5.另外sentinel会对刚下线的master继续进行监视，如果一旦上线，会将它作为slave上线。
+
+【学前问题】
+Q1：哨兵保证了数据节点集群的高可用，那哨兵集群本身的考可用由谁来保证？如何保证？
+Q2：一个哨兵集群可以监视多个redis集群吗？yes
+Q3：Redis集群是否支持多master
+Q4：sentinel节点之间是符合通信协商的？
+
+
