@@ -1,0 +1,20 @@
+## 复制（Replication）
+ 1.Redis的主从复制功能分为同步(全量同步)和命令传播(增量同步)。
+  【同步】用于新上线的slave首次从master同步数据，其步骤如下：
+     a) slave上线后向master发送sync命令，请求同步数据，时间记录为t1
+     b) master接收到slave请求后，记录下t1之前的数据库快照，形成RDB文件，并将t1之后的增量数据记录到AOF缓冲区中
+        [疑惑] 数据都是实时在变化的，master怎么在一瞬间记录下t1时刻之前的快照？
+     c) slave接到从master收到的RDB的数据，进行全量恢复
+     d) slave在加载完RDB文件后，master再将AOF缓冲区的增量命令发送给slave
+     e) master和slave数据对齐，偏移量的状态一致，同步完整，进入命令传播阶段。 
+  【命令传播】
+     a) master会将每一条修改数据的命令，推送给它下面所有的slave节点。
+     b) 怎么保证master推给slave的消息一定到达，从而保证数据一致性。
+        受网络影响推送的可靠性无法保证，但slave通过心跳检测机制可以判断消息是否发生丢失。	
+        在命令传播阶段，slave会启动一个后台线程，每隔1s向master汇报自己的同步偏移量，因此master收到后会主动对比，如果发现有偏差则会将偏差数据从缓冲区中捞出，并重新发送给slave。
+
+ 2.slave在向master同步数据时，如果发生断线，怎么处理？
+   redis2.8版本以后，支持psync命令，针对断线后的数据，可以只是部分重传，整个过程如下：
+     a) master收到slave的psync请求，请求信息中包含了serverId和offset
+     b) master校验slave信息，通过serverId判断出master是否更换过节点；通过offset能够检测出主从数据是否一致。
+     c) 当发生主从数据不一致时，master会判断slave的offset是否仍然存在于复制缓冲区中(复制缓冲区默认是1M空间，利用FIFO特性仅保留了最近时间修改的命令)，如果缓冲区中存在，则在缓冲区中找出差异数据发送给slave；如果不存在则触发全量同步。
