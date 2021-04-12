@@ -1,0 +1,105 @@
+# Server
+redis_version:3.0.0
+redis_git_sha1:00000000
+redis_git_dirty:0
+redis_build_id:b0ad6d614e1accd
+redis_mode:standalone	 ### redis运行模式，这里是单机模式，集群则为cluster
+os:Linux 4.1.0-30.el7.ucloud.x86_64 x86_64
+arch_bits:64
+multiplexing_api:epoll  ### 事件循环处理机制epoll（可以跟select和poll对比下，epoll性能好）
+gcc_version:4.4.7
+process_id:15
+run_id:dc73f073b604d98b2252744f9b18e47847f1297b   #### redis服务器随机数标识（用于Sentinel和Cluster集群）
+tcp_port:6379
+uptime_in_seconds:23282125	### redis实例存活时间：秒
+uptime_in_days:269	### redis实例存活时间：天
+hz:10   #### redis内部调度（进行关闭timeout的客户端，删除过期key等等）频率，程序规定serverCron每秒运行10次。
+lru_clock:7592758  #### 每分钟自增的时钟,用于LRU管理,该时钟100ms(hz=10,因此每1000ms/10=100ms执行一次定时任务)更新一次。
+config_file:/data/247b7fb4-27d2-4cad-b99f-62f90774805c/redis.conf
+
+# Clients
+connected_clients:47   ### 客户端的连接数（不包含salve的连接）
+client_longest_output_list:0  # 当前连接的客户端当中，最长的输出列表，用client list命令观察omem字段最大值
+client_biggest_input_buf:0  # 当前连接的客户端当中，最大输入缓存，用client list命令观察qbuf和qbuf-free两个字段最大值
+blocked_clients:0  # 客户端阻塞数(使用BLPOP, BRPOP, BRPOPLPUSH命令)
+
+# Memory
+used_memory:7371533048  # redis分配的内存(standard libc, jemalloc,tcmalloc) Byte
+used_memory_human:6.87G  # redis分配的内存(human)
+used_memory_rss:7616450560   # 占用操作系统的资源大小 Byte
+used_memory_peak:7472816744  # redis内存消耗峰值
+used_memory_peak_human:6.96G	# redis内存消耗峰值(human)
+used_memory_lua:144384	# lua使用的内存大小
+mem_fragmentation_ratio:1.03	# used_memory_rss和used_memory之间的比率，小于1表示使用了swap，大于1表示碎片比较多
+mem_allocator:jemalloc-3.6.0	# 在编译时指定的redis所使用的内存分配器。可以是libc、jemalloc或者tcmalloc
+
+# Persistence
+loading:0   # 服务器是否正在加载持久化文件
+rdb_changes_since_last_save:714923518	# 待进行RDB持久化的命令行数
+rdb_bgsave_in_progress:0	 # 服务器是否正在创建rdb文件
+rdb_last_save_time:1594923369	 # 距离上次创建RDB文件的毫秒数
+rdb_last_bgsave_status:ok	# 最近一次rdb保存结果
+rdb_last_bgsave_time_sec:-1	# 最近一个保存rdb消耗的时间（秒）
+rdb_current_bgsave_time_sec:-1	 # 当前保存rdb耗时多少秒
+rdb_last_cow_size:294912 	###RDB过程中父进程与子进程相比执行了多少修改(包括读缓冲区,写缓冲区,数据修改等)
+aof_enabled:0	# 是否开启了aof，1是开
+aof_rewrite_in_progress:0	 # aof的rewrite是否正在进行中
+aof_rewrite_scheduled:0	# rewrite任务计划，当客户端发送bgrewriteaof指令，如果当前rewrite子进程正在执行，那么将客户端请求的bgrewriteaof变为计划任务，待aof子进程结束后执行rewrite
+aof_last_rewrite_time_sec:45	 # 最近一次aof rewrite耗时长
+aof_current_rewrite_time_sec:-1	 # 当前保存aof rewrite耗时多少秒
+aof_last_bgrewrite_status:ok	# 最近一次aof rewrite保存结果
+aof_last_write_status:ok	 # 最近一次aof写入的状态
+
+# Stats
+total_connections_received:13091205	# 新创建连接个数,如果新创建连接过多，过度地创建和销毁连接对性能有影响，说明短连接严重或连接池使用有问题，需调研代码的连接设置
+total_commands_processed:901363195	# redis处理的命令数
+instantaneous_ops_per_sec:29	# redis当前的qps，redis内部较实时的每秒执行的命令数
+total_net_input_bytes:94261723352	 # redis网络入口流量字节数
+total_net_output_bytes:803391232925	 # redis网络出口流量字节数
+instantaneous_input_kbps:2.42	# redis网络入口kps
+instantaneous_output_kbps:21.02	# redis网络出口kps
+rejected_connections:0	# 拒绝的连接个数，redis连接个数达到maxclients限制，拒绝新连接的个数
+sync_full:9	# 主从完全同步成功次数
+sync_partial_ok:0	# 主从部分同步成功次数
+sync_partial_err:7	# 主从部分同步失败次数
+expired_keys:244851795 # 运行以来过期的key的数量
+evicted_keys:0   # 运行以来剔除(超过了maxmemory后，根据LRU剔除)的key的数量
+keyspace_hits:293112453			# 命中次数
+keyspace_misses:255102072		# 没命中次数
+pubsub_channels:0		# 当前使用中的channel数量
+pubsub_patterns:0		# 当前使用的模式的数量
+latest_fork_usec:139426		# 最近一次fork操作阻塞redis进程的耗时数，单位微秒
+migrate_cached_sockets:0		# socket缓冲？
+
+# Replication
+role:master			#### 当前Redis节点的角色是master
+connected_slaves:8		#### 当前Redis节点下有8个slave节点
+slave0:ip=10.10.184.236,port=6379,state=online,offset=96234969795,lag=0		### slave0信息：ip/端口/状态/同步偏移量/延迟(一般再0~1之间为正常)，lag从库多少秒未向主库发送REPLCONF命令
+slave1:ip=10.10.117.173,port=6379,state=online,offset=96234969489,lag=0
+slave2:ip=10.10.168.230,port=6379,state=online,offset=96234969489,lag=0
+slave3:ip=10.10.117.199,port=6379,state=online,offset=96234968847,lag=0
+slave4:ip=10.10.69.158,port=6379,state=online,offset=96234968932,lag=0
+slave5:ip=10.10.210.118,port=6379,state=online,offset=96234968598,lag=1
+slave6:ip=10.10.179.38,port=6379,state=online,offset=96234968758,lag=1
+slave7:ip=10.10.103.249,port=6379,state=online,offset=96234967572,lag=1
+master_repl_offset:96234970183 # 复制偏移量
+repl_backlog_active:1	# 复制积压缓冲区是否开启
+repl_backlog_size:62914560	# 复制积压缓冲大小
+repl_backlog_first_byte_offset:96172055624	# 复制积压缓冲区里偏移量
+repl_backlog_histlen:62914560	 # 等于 master_repl_offset - repl_backlog_first_byte_offset,该值不会超过repl_backlog_size的大小
+
+# CPU
+used_cpu_sys:211712.31			###主进程在内核态消耗时间
+used_cpu_user:31147.04			###主进程在用户态消耗的时间
+used_cpu_sys_children:47.76		###后台进程在内核态消耗时间
+used_cpu_user_children:54.73	###后台进程在用户态消耗的时间
+
+# Cluster
+cluster_enabled:0	 # 是否开启集群模式 0,没有
+
+# Keyspace
+db0:keys=1813944,expires=1343613,avg_ttl=9853645275		 # 数据库db0的key数量，带有生存期的key数量，平均存活时间
+db2:keys=6,expires=0,avg_ttl=0
+
+
+

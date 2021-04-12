@@ -2,5 +2,17 @@
 2.想不明白一个问题，intset是一个有序数组，作为set类型的存储实现我能接受，但为什么不作为SortedSet的存储呢，大家共性都是有序啊？
 3.redis都有哪些淘汰策略，使用场景是什么？
 4.为什么要用quicklist，它是怎么在linkedlist和ziplist折中的？
+5.Redis高可用应对不用场景有哪些方案？
+  a) 某个哨兵节点不可用怎么办  （Redis的哨兵之间也会相互监视，当发现其中一个哨兵不可用之后，也会选举出sentinelLeader进行剔除，采用的分布式算法使用Raft）
+  b) 哨兵集群发生脑裂怎么办  
+6.一般主从模式，slave好像没有过期时间，因为过期key的删除全依赖于master(通过info查询avg_ttl字段得出结论)
+7.ATP全用Redis存储，怎么保证数据可靠性
+  a) 作为每日优鲜电商，ATP库存虽然只记录在Redis中，且甚至没有开启AOF持久化功能；这是因为最终有微仓库存兜底
+  b) 一般电商库存数量还是会落到mysql中，哪些秒杀的SKU会临时落在Redis中。
 
 https://www.cnblogs.com/hunternet/p/12624691.html
+
+
+### 线上redis配置情况
+ 1.Redis版本使用5.0，机器配置为1核2G
+ 2.高可用采用一主一备，没有开启持久化功能
