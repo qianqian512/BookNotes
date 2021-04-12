@@ -1,4 +1,31 @@
 
+Redis
+	Redis支持哪些淘汰策略，分别什么场景使用。
+	缓存穿透/缓存雪崩/缓存失效
+	项目中如何保证缓存和数据库一致性。
+RocketMQ
+Zookeeper(CAP)
+MySQL
+Dubbo
+	Dubbo服务器发布流程（围绕分层整理）
+		从运行角度来看：发布服务就是根据配置的属性，对外打开端口暴露服务，同时并注册到注册中心。
+	Dubbo请求调用流程（围绕分层整理）
+	Dubbo在设计上是如何支持Telnet协议的
+	Dubbo的InJVM协议是干嘛的？
+	Dubbo的Filter和Listener分别在什么时候触发
+	Dubbo在设计上是如何支持Group和Version的，作为server端运行时怎么区分调用的？
+	Dubbo是如何通过ExtensionLoader完整自加载的
+	ExtensionLoader的@Adaptive和@Activate的区别
+	Dubbo传输数据格式什么样
+	Dubbo的Wrapper是如何创建的，有什么用（例如ProtocolFilterWrapper）
+	Dubbo是如何做到字节码增强的
+	Exchange层存在的目的是什么？
+
+JVM
+TCP/HTTP/Epoll
+Spring
+
+
 
 
 TODO
