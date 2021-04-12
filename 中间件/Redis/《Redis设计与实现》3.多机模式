@@ -86,7 +86,14 @@ Q4：sentinel节点之间是符合通信协商的？
  8.cluster没有哨兵和类似zk的协调者，怎么保证自身的高可用？
  9.除了RedisCluster以外，学习一下阿里云的集群双副本版本
     a) 数据还是采用分片的方式，但SLB和Redis分片中间多了一层Proxy集群
-    
+ 10.ReidsCluster的工作过程
+  a)节点启动
+  b)相互meet
+  c)根据key查询时，判断slot是否落到自身节点，如果不是返回moved
+  d)客户端根据moved信息缓存到本地，再次新建到moved指向到节点。
+  e)中间每当有增减节点时，clusterNode会相互传递信息；
+  f)如果客户端访问当key正在发生迁移，会收到一个ask响应....
+  
 RedisCluster
 https://stor.51cto.com/art/201912/608491.htm
  
