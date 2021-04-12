@@ -65,4 +65,6 @@ Q2：一个哨兵集群可以监视多个redis集群吗？yes
 Q3：Redis集群是否支持多master
 Q4：sentinel节点之间是符合通信协商的？
 
+#### 集群模式
+
 
