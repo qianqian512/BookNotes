@@ -30,7 +30,7 @@ used_memory_rss:7616450560   # 占用操作系统的资源大小 Byte
 used_memory_peak:7472816744  # redis内存消耗峰值
 used_memory_peak_human:6.96G	# redis内存消耗峰值(human)
 used_memory_lua:144384	# lua使用的内存大小
-mem_fragmentation_ratio:1.03	# used_memory_rss和used_memory之间的比率，小于1表示使用了swap，大于1表示碎片比较多
+mem_fragmentation_ratio:1.03	# used_memory_rss和used_memory之间的比率，小于1表示使用了swap，在1浮动上下还算正常，一般大于3以上表示碎片比较多，之前也见过有20+的
 mem_allocator:jemalloc-3.6.0	# 在编译时指定的redis所使用的内存分配器。可以是libc、jemalloc或者tcmalloc
 
 # Persistence

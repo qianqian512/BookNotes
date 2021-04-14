@@ -53,6 +53,27 @@
  RDB：记录快照慢；恢复载入快。
  AOF：支持增量方式记录快照；恢复加载速度比RDB慢。
 
-
+#### Redis的垃圾回收策略，对比Java的GC，各自有什么特点，为什么采用现有的方案？
+  1.Redis中为了保证充分利用空间，对于不同key但相同的value，只会创建一份，然后另多个key指向同一个value。
+  2.在redis中任何一个key对应的value，都有Object类型的封装，例如sdsObject/ListObject/SortedSetObject等，其中所有的XXX-Object都有一个refCount字段，这个字段就记录了当前value被key引用的次数。
+  3.【存储】redis采用引用计数回收，之所以不像Java使用标记可达追踪，是因为Redis中不存在循环引用的问题。
+  4.【执行】后台BG线程执行删除；主进程执行惰性删除。
+ [思考] Redis在GC时会清理碎片，保证空间使用率吗？
+ 	不知道？
+ 
+ [思考] Redis的内存碎片是怎么产生的
+ 	a) 频繁创建删除，且删除留下的空间过小，导致大的内存分配不上
+ 
+ [思考] 通过info的mem_fragmentation_ratio怎么判断内存碎片情况
+  	a) mem_fragmentation_ratio < 1 表示Redis内存分配超出了物理内存，操作系统正在进行内存交换，内存交换会引起非常明显的响应延迟；
+	b) mem_fragmentation_ratio > 1 是合理的；
+	c) mem_fragmentation_ratio > 1.5 说明Redis消耗了实际需要物理内存的150%以上，其中50%是内存碎片率，可能是操作系统或Redis实例中内存管理变差的表现
+ [思考] 如果生产环境碎片会有什么情况，会导致Redis无法分配空间吗？
+ 	不知道？
+ 
+ [思考] 如果生产环境碎片过多怎么办？如何避免
+  	a) 如果线上Redis内存碎片过多，可以通过命令触发清理。
+  	b) 如何避免？: XXX
+ 
 
 
