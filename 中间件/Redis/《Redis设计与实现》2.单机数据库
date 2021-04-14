@@ -62,18 +62,24 @@
  	不知道？
  
  [思考] Redis的内存碎片是怎么产生的
- 	a) 频繁创建删除，且删除留下的空间过小，导致大的内存分配不上
+ 	频繁创建删除，且删除留下的空间过小，导致大的内存分配不上。
  
  [思考] 通过info的mem_fragmentation_ratio怎么判断内存碎片情况
-  	a) mem_fragmentation_ratio < 1 表示Redis内存分配超出了物理内存，操作系统正在进行内存交换，内存交换会引起非常明显的响应延迟；
-	b) mem_fragmentation_ratio > 1 是合理的；
-	c) mem_fragmentation_ratio > 1.5 说明Redis消耗了实际需要物理内存的150%以上，其中50%是内存碎片率，可能是操作系统或Redis实例中内存管理变差的表现
+ 	该值是通过 物理消耗内存÷Redis使用内存，结果用mem_fragmentation_ratio标识：
+  	a) mem_fragmentation_ratio < 1 表示Redis内存分配超出了物理内存，操作系统会开始进行内存和磁盘的换入换出，最终导致非常明显的响应延迟(因为已经借用了磁盘空间，所以此时无法统计碎片情况)；
+	b) mem_fragmentation_ratio 在1到1.5之间是合理的；
+	c) mem_fragmentation_ratio > 1.5 说明Redis消耗了实际需要物理内存的150%以上，其中50%是内存碎片率，可能是操作系统或Redis实例中内存管理变差的表现（一般保持在1~1.5之间是合理的）
  [思考] 如果生产环境碎片会有什么情况，会导致Redis无法分配空间吗？
- 	不知道？
+ 	猜测会开始借用磁盘了吧？然后导致整体吞吐量下降。
  
  [思考] 如果生产环境碎片过多怎么办？如何避免
   	a) 如果线上Redis内存碎片过多，可以通过命令触发清理。
-  	b) 如何避免？: XXX
- 
+  	b) 在配置文件中启用activedefrag yes可以开启碎片整理功能:
+  		active-defrag-ignore-bytes 100mb     ：碎片达到100MB时，开启清理。
+		active-defrag-threshold-lower 10     ：当碎片超过 10% 时，开启清理。
+		active-defrag-threshold-upper 100    ：内存碎片超过 100%，尽最大清理。
+	   在处理的过程中，为了避免对正常请求的影响，同时又能保证性能。Redis 同时还提供了监控 CPU 占用比例的参数，在满足以下条件时才会保证清理正常开展：
+ 		active-defrag-cycle-min 5  ：清理内存碎片占用 CPU 时间的比例不低于此值，保证清理能正常开展。
+		active-defrag-cycle-max 75 ：清理内存碎片占用 CPU 时间的比例不高于此值。一旦超过则停止清理，从而避免在清理时，大量的内存拷贝阻塞 Redis，导致其它请求延迟。
 
 
