@@ -1,0 +1,50 @@
+#### DubboProvider在接到请求后，经过了哪些关键类，这些类在Dubbo模型的哪层上，具体都做了什么事？
+1.数据在到达时，会先交给Netty来处理，根据NettyServer定义的pipeline，处理逻辑很大致就是：请求-> decode -> process -> encode -> 网络。
+`----
+ NettyCodecAdapter adapter = new NettyCodecAdapter(getCodec(), getUrl(), NettyServer.this);
+                        ch.pipeline().addLast("decoder", adapter.getDecoder())  // decode
+                                .addLast("encoder", adapter.getEncoder()) // process
+                                .addLast("handler", nettyServerHandler); // encode
+`-------
+考虑整体分3大块梳理 - 解码：
+通过看代码可以得知，编解码具体实现取决于NettyCodecAdapter，而NettyCodecAdapter创建依赖于3个参数：
+  1) com.alibaba.dubbo.remoting.Codec2     # 实际类型：
+  		com.alibaba.dubbo.rpc.protocol.dubbo.DubboCountCodec
+  		  +- com.alibaba.dubbo.rpc.protocol.dubbo.DubboCodec
+  		   +- com.alibaba.dubbo.remoting.exchange.codec.ExchangeCodec extends com.alibaba.dubbo.remoting.telnet.codec.TelnetCodec
+  2) com.alibaba.dubbo.common.URL		# 实际值：dubbo://172.16.244.26:20880/org.hum.scaffold.dubbo.DubboExportTests$DemoService?anyhost=true&application=huming&bind.ip=172.16.244.26&bind.port=20880&channel.readonly.sent=true&codec=dubbo&dubbo=2.0.2&generic=false&group=group3&heartbeat=60000&interface=org.hum.scaffold.dubbo.DubboExportTests$DemoService&methods=sayHello,sayHello2&pid=97812&revision=1.2&side=provider&timestamp=1618396596950&version=1.2
+  3) com.alibaba.dubbo.remoting.ChannelHandler		# 实际类型：
+
+1.关于NettyCodecAdapter：在数据到达时，Netty中第一个处理的ChannelHandler是NettyCodecAdapter的decoder对象，decoder继承了Netty的ByteToMessageDecoder，主要是用来适配上层传入的decoder实现，这里的decoder其实是一个DubboCountCodec类型的wrapper类，这个类主要作用是，将所有decode完的对象（RpcInvocation和RpcResult）在上下文中记录byte长度；而真正的解码实现则是DubboCodec。
+2.关于DubboCodec：从类继承的角度看，DubboCodec继承ExchangeCodec，爷爷是TelnetCodec(还有上层，暂时没有研究)，在decode时，先通过传入的第一个字节判断是否是Dubbo协议，如果不是Dubbo协议，则当输入流是ASCII码，交给TelnetCodec处理；如果输入流是Dubbo协议，则交给DubboCodec处理
+3.经过DubboCodec处理的返回值，最终可能是以下几种类型
+	a) com.alibaba.dubbo.remoting.exchange.Request ：正常Dubbo客户端请求
+	b) java.lang.String ：通过telnet传入的ASCII请求，例如 ls/invoke等命令
+	c)  ：客户端发来的心跳包
+
+【补充】动态序列化 XXX
+
+处理：
+经过decoder解码后，二进制数组已经被反序列化成handler可解析的对象，下面就梳理handler针对请求参数是如何进行处理的。在梳理之前先明确出，为了将各个处理类解耦，第一个处理类NettyServerHandler其实是一个链式调用，这也就解释了为什么只有一个处理类，但它既可以处理心跳、又可以处理业务请求，实际原理就是链式层层调用。
+	NettyServerHandler -> NettyServer -> MultiMessageHandler -> HeartbeatHandler -> AllChannelHandler
+在调用链的末尾节点，是一个叫AllChannelHandler，看名字就可以简单猜出个大概，这是一个用来兜底的Handler，它可以处理所有类型的Message。继续跟代码可以发现它的received方法非常清晰，就是将message和handler封装成可执行对象ChannelEventRunnable，提交给线程池进行异步处理。
+查看ChannelEventRunnable的run方法，代码执行逻辑正如类名一样，是根据Channel状态触发不同的动作，以接收请求为例，会执行下面代码:
+`---------
+	handler.received(channel, message); // 其中handler类型为DecodeHandler
+`---------
+DecoderHandler解码完，会将message交给HeaderExchangeHandler处理（这里为什么要二次解码，暂时还没细看，不过大概看了一下此处解码已经不再是对传入的IO字节进行反序列化）
+关于HeaderExchangeHandler有几个点要说明：
+   a) 刚才的DecoderHandler所处于Dubbo的Remoting层，而HeaderExchangeHandler处于Exchange层
+   b) HeaderExchangeHandler.received主要处理逻辑还是根据消息类型，选择不同的处理逻辑，同时还负责将remoting对象和exchange层进行转换(例如传入时会将Request转成参数Invocation，将Result转成Response)
+   c) 这里分支交给TelnetHandler和DubboHandler 
+   d)
+
+
+
+
+
+
+
+
+
+
