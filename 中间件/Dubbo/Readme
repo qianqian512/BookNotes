@@ -37,9 +37,19 @@ DecoderHandler解码完，会将message交给HeaderExchangeHandler处理（这�
    a) 刚才的DecoderHandler所处于Dubbo的Remoting层，而HeaderExchangeHandler处于Exchange层
    b) HeaderExchangeHandler.received主要处理逻辑还是根据消息类型，选择不同的处理逻辑，同时还负责将remoting对象和exchange层进行转换(例如传入时会将Request转成参数Invocation，将Result转成Response)
    c) 这里分支交给TelnetHandler和DubboHandler 
-   d)
+     c1) TelnetHandler分支 
+     	I.	TelnetHandler会将整个message解析出2部分，一个是command，另一部分是args
+     	II.	根据command从ExtensionLoader加载出相应的TelnetHandler，以invoke为例会加载出InvokeTelnetHandler
+     	III.在InvokeTelnetHandler中，通过args解析出要调用的method和Java参数，以及参数类型，通过这3个变量可以定位到一个唯一的Invoker
+     	IV.	将Method和刚刚被反序列化成出的Java参数，封装成一个RpcInvocation，交给Invoker发起调用（这里的Invoker类型是DelegateProviderMetaDataInvoker）。
+     	[补充1] 关于DelegateProviderMetaDataInvoker的说明：在暴露Service时，Dubbo会将Service包装成由多个Invoker组成的调用链（XXX 在哪里组成，貌似不是通过Dubbo SPI的Wrapper方式）
+     	[补充2] 调用链：DelegateProviderMetaDataInvoker -> JavassistProxyFactory.getInvoker -> 
+     	V.	
+     c2) DubboHandler分支 
 
 
+1.发布Dubbo服务时，可以对某一个服务屏蔽telnet命令（参考 TelnetHandlerAdapter.commandEnabled 方法）
+2.
 
 
 
