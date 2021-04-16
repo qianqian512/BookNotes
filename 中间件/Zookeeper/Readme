@@ -1,1 +1,4 @@
 Redis/MySQL/Zookeeper/ES 在集群模式下，分别实现了CAP的哪个特性 
+
+MySQL的主备实现了CP：在同步写数据时，要保证master和backup都写成功才返回，这样才能保证backup数据一致性。
+MySQL的主从实现了AP：在同步写数据时，只要master成功即可给客户端一个返回，然后再异步写入slave，这样保证了高可用的吞吐量，但主从缺失了短暂的数据一致性。
