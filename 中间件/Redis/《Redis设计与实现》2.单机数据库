@@ -27,6 +27,9 @@
 #### 项目中的生产环境，使用了哪种持久化模式?
   sms-basic项目采用的是一主一备的复制模式，其中master是rdb，slave是rdb+aof
 
+#### 怎么判断是主从还是主备？
+  我自己的判断方式，通过登录到slave节点发送info命令，如果返回的clients字段判断是slave还是backup。一般slave的客户端连接数和master差不多，而backup连接数一般都是0。
+
 #### AOF持久化原理与过程
  1.与RDB不同的是，AOF是通过执行命令行的方式记录了Redis数据库的快照。
  2.Redis的主进程就是一个事件循环机制，单循环动作分为3个步骤：
@@ -54,26 +57,30 @@
  AOF：支持增量方式记录快照；恢复加载速度比RDB慢。
 
 #### Redis的垃圾回收策略，对比Java的GC，各自有什么特点，为什么采用现有的方案？
-  1.Redis中为了保证充分利用空间，对于不同key但相同的value，只会创建一份，然后另多个key指向同一个value。
-  2.在redis中任何一个key对应的value，都有Object类型的封装，例如sdsObject/ListObject/SortedSetObject等，其中所有的XXX-Object都有一个refCount字段，这个字段就记录了当前value被key引用的次数。
+  1.Redis中为了保证充分利用空间，对于不同key但相同的value，只会创建一份，然后另多个key指向同一个value，以此方式达到共享内存，节约空间的目的。
+  2.在redis中任何一个key对应的value，都有Object类型的封装，例如sdsObject/ListObject/SortedSetObject等，其中所有的XXX-Object都有一个refCount字段，这个字段就记录了当前value被key引用的次数，当refCount=0时就代表这个对象没有任何引用，可以被回收了。
   3.【存储】redis采用引用计数回收，之所以不像Java使用标记可达追踪，是因为Redis中不存在循环引用的问题。
   4.【执行】后台BG线程执行删除；主进程执行惰性删除。
- [思考] Redis在GC时会清理碎片，保证空间使用率吗？
- 	可以的，通过参数配置，Redis4.0以后有专门的参数支持
+  
+ [思考] Redis在GC时会清理碎片来保证空间使用率吗？
+ 	4.0之前是没有办法保证的；在4.0以后可以通过配置activedefrag参数来设置。
  
  [思考] Redis的内存碎片是怎么产生的
  	频繁创建删除，且删除留下的空间过小，导致大的内存分配不上。
  
- [思考] 通过info的mem_fragmentation_ratio怎么判断内存碎片情况
- 	该值是通过 物理消耗内存÷Redis使用内存，结果用mem_fragmentation_ratio标识：
+ [思考] 怎么判断生产环境内存碎片情况
+    通过info命令返回的mem_fragmentation_ratio字段，该值计算公式=物理消耗内存÷Redis使用内存，结果用mem_fragmentation_ratio标识：
   	a) mem_fragmentation_ratio < 1 表示Redis内存分配超出了物理内存，操作系统会开始进行内存和磁盘的换入换出，最终导致非常明显的响应延迟(因为已经借用了磁盘空间，所以此时无法统计碎片情况)；
 	b) mem_fragmentation_ratio 在1到1.5之间是合理的；
 	c) mem_fragmentation_ratio > 1.5 说明Redis消耗了实际需要物理内存的150%以上，其中50%是内存碎片率，可能是操作系统或Redis实例中内存管理变差的表现（一般保持在1~1.5之间是合理的）
+	
  [思考] 如果生产环境碎片会有什么情况，会导致Redis无法分配空间吗？
- 	猜测会开始借用磁盘了吧？然后导致整体吞吐量下降。
+ 	猜测在碎片过多，而导致在内存分配失败时，应该会开始借用磁盘了，然后频繁的swap导致整体吞吐量下降。
  
  [思考] 如果生产环境碎片过多怎么办？如何避免
-  	a) 如果线上Redis内存碎片过多，可以通过命令触发清理。
+  	a) 对于正在运行的Redis，如果发现碎片过多，可以通过命令手动触发清理
+  		I.	命令一：config set activedefrag yes
+  		II.	命令二：memory purge
   	b) 在配置文件中启用activedefrag yes可以开启碎片整理功能:
   		active-defrag-ignore-bytes 100mb     ：碎片达到100MB时，开启清理。
 		active-defrag-threshold-lower 10     ：当碎片超过 10% 时，开启清理。

@@ -42,15 +42,25 @@ DecoderHandler解码完，会将message交给HeaderExchangeHandler处理（这�
      	II.	根据command从ExtensionLoader加载出相应的TelnetHandler，以invoke为例会加载出InvokeTelnetHandler
      	III.在InvokeTelnetHandler中，通过args解析出要调用的method和Java参数，以及参数类型，通过这3个变量可以定位到一个唯一的Invoker
      	IV.	将Method和刚刚被反序列化成出的Java参数，封装成一个RpcInvocation，交给Invoker发起调用（这里的Invoker类型是DelegateProviderMetaDataInvoker）。
-     	[补充1] 关于DelegateProviderMetaDataInvoker的说明：在暴露Service时，Dubbo会将Service包装成由多个Invoker组成的调用链（XXX 在哪里组成，貌似不是通过Dubbo SPI的Wrapper方式）
-     	[补充2] 调用链：DelegateProviderMetaDataInvoker -> JavassistProxyFactory.getInvoker -> 
-     	V.	
-     c2) DubboHandler分支 
+     	[补充1] 关于DelegateProviderMetaDataInvoker的说明：在暴露Service时，Dubbo会将Service包装成由若干个InvokerWrapper组成的调用链（通过DubboSPI的@Activate构建了Wrapper调用链）
+     	dubbo://172.16.244.26:20880/org.hum.scaffold.dubbo.DemoService?anyhost=true&application=scaffold&bean.name=org.hum.scaffold.dubbo.DemoService&bind.ip=172.16.244.26&bind.port=20880&dubbo=2.0.2&generic=false&interface=org.hum.scaffold.dubbo.DemoService&methods=sayHello,sayHello2&pid=13247&side=provider&timestamp=1618563989378
+     	[补充2] 调用链：DelegateProviderMetaDataInvoker -> JavassistProxyFactory.getInvoker -> Wrapper$1 -> 用户实现类
+     	V.	了解上面的调用链后，下面逐一分析一下每个节点的作用
+     		DelegateProviderMetaDataInvoker：纯粹就是一个代理类
+     		JavassistProxyFactory.getInvoker：
+     		Wrapper$1：
+     		用户实现类：最终线程将执行到用户的业务代码
+     c2) DubboHandler分支
 
 
 1.发布Dubbo服务时，可以对某一个服务屏蔽telnet命令（参考 TelnetHandlerAdapter.commandEnabled 方法）
 2.
 
+
+
+#### Dubbo优雅停机过程 TODO
+还没看代码，猜测应该是通过addShutdownHook增加钩子监听JVM关闭事件(kill -15或者System.exit(0)触发)。
+然后优雅停机的过程猜测应该是先摘除在zk节点上个的流量，然后由zk通知消费者。等dubbo内部线程池中的任务队列清空，就可以退出停机了。
 
 
 
