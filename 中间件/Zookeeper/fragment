@@ -38,3 +38,5 @@ Basic Paxos 算法，描述的是多节点之间如何就某个值（提案 Valu
 Multi-Paxos 思想，描述的是执行多个 Basic Paxos 实例，就一系列值达成共识。
 
 针对 Basic Paxos 的局限性 Multi-Paxos 又是如何改进的。
+
+zookeeper因为只能leader写，因此处理写并发性能不高

@@ -1,3 +1,4 @@
+
 ### Redis/MySQL/Zookeeper/ES 在集群模式下，分别实现了CAP的哪个特性 
 Redis的主从实现了AP：Redis为了追求性能，因此在写master时，会通过异步方式写slave。
 Redis的主备：和主从一样吗？

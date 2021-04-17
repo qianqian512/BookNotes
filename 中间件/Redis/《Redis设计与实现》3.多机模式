@@ -93,7 +93,12 @@ Q4：sentinel节点之间是符合通信协商的？
   d)客户端根据moved信息缓存到本地，再次新建到moved指向到节点。
   e)中间每当有增减节点时，clusterNode会相互传递信息；
   f)如果客户端访问当key正在发生迁移，会收到一个ask响应....TODO
-  
+
+### 20210417问题整理
+ 1.Redis基于哨兵的主从架构有脑裂问题？
+ 
+ 2.Reids的集群用什么解决方案应对脑裂？
+
 RedisCluster
 https://stor.51cto.com/art/201912/608491.htm
  
