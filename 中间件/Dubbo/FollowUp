@@ -1,1 +1,12 @@
 1.dubbo的twoway是干嘛的
+
+
+#### Dubbo优雅停机过程 TODO
+还没看代码，猜测应该是通过addShutdownHook增加钩子监听JVM关闭事件(kill -15或者System.exit(0)触发)。
+然后优雅停机的过程猜测应该是先摘除在zk节点上个的流量，然后由zk通知消费者。等dubbo内部线程池中的任务队列清空，就可以退出停机了。
+
+
+
+
+
+
