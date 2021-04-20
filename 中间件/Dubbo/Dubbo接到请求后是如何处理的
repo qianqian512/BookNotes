@@ -45,7 +45,7 @@
 `---------
 	handler.received(channel, message); // 其中handler类型为DecodeHandler
 `---------
-  4.DecoderHandler解码完，会将message交给HeaderExchangeHandler处理（这里为什么要二次解码，暂时还没细看，不过大概看了一下此处解码已经不再是对传入的IO字节进行反序列化）
+  4.DecodeHandler解码完，会将message交给HeaderExchangeHandler处理（这里为什么要二次解码，暂时还没细看，不过大概看了一下此处解码已经不再是对传入的IO字节进行反序列化）
   5.关于HeaderExchangeHandler有几个点要说明：
    a) 刚才的DecoderHandler所处于Dubbo的Remoting层，而HeaderExchangeHandler处于Exchange层
    b) HeaderExchangeHandler.received主要处理逻辑还是根据消息类型，选择不同的处理逻辑，同时还负责将remoting对象和exchange层进行转换(例如传入时会将Request转成参数Invocation，将Result转成Response)

@@ -74,7 +74,10 @@ ByteBuf byteBuf = Unpooled.wrappedBuffer(bytes);
 
 > EventLoop实现原理：基于Reactor模型
 
-
+#### 为什么netty能支持单机百万连接？
+还是要归功于NIO+Reactor能支持百万连接
+BIO在C10K问题上的瓶颈主要在于BIO的同步阻塞模型会为每一个连接创建一个线程，这样不仅耗尽了内存，同时线程数过多导致频繁的上下文切换，也拉低了这个吞吐量。
+Netty采用NIO+Reactor模型，可以做到只用几个线程就hold住C10K的场景。
 
 
 

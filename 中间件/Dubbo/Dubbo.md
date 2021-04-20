@@ -121,7 +121,7 @@ AdaptiveExtensionFactory作为ExtensionLoader的默认实现，内部实际是�
 #### ProtocolListenerWrapper和ProtocolFilterWrapper区别
 
 #### Dubbo中Transport和Exchange的Handler分层
-> 读代码时发现这2层均有Handler实现，Transporter层以Netty为代表，关注的是解码协议和序列化，而Exchange层的实现更多是关注同步异步的转换。
+> 读代码时发现这2层均有Handler实现，Transporter层以Netty为代表，关注的是编解码和处理IO事件，例如NettyServer定义的Pipeline；而Exchange层的ExchangeHandler实现更多是关注同步异步的转换。
 
 #### Dubbo调用过程
 发送
