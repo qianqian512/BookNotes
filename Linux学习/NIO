@@ -1,0 +1,16 @@
+#### select
+ What：select用来监视多个文件的句柄变化，程序遇到select函数会在这里等待，直到被监视句柄的状态发生了变化。
+ Why：相比直接用recv函数，通过使用非阻塞模式的select，可以在一个线程内处理多个Socket的IO请求。
+ How：
+ 缺点：
+ 	1.单个进程可监视的fd数量被限制，限制数一般配置在/proc/sys/fs/file-max。
+ 	2.对socket进行扫描时是线性扫描，即采用轮询的方法，不管哪个Socket是活跃的，都遍历一遍。（给套接字注册某个回调函数，当他们活跃时，自动完成相关操作，那就避免了轮询，这正是epoll与kqueue做的）
+ 	3.需要维护一个用来存放大量fd的数据结构，这样会使得用户空间和内核空间在传递该结构时复制开销大。
+
+参考：https://www.cnblogs.com/skyfsm/p/7079458.html
+
+#### poll
+
+#### epoll
+
+https://segmentfault.com/a/1190000003063859

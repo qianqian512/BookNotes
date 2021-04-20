@@ -104,6 +104,7 @@ AdaptiveExtensionFactory作为ExtensionLoader的默认实现，内部实际是�
 参见P102页
 
 #### Dubbo的Injvm协议是干嘛用的？
+InJvm协议用于本地调用的，与直接调用用户Service对象不同的是，经过InJvm协议包装的调用会经过 Filter 链，其中包括了 Consumer 端的 Filter 链以及 Provider 端的 Filter 链。通过这样的机制，本地消费者和其他消费者都是统一对待，统一监控，服务统一进行治理。
 
 #### Dubbo的Protocol层设计理念
 > 1.个人理解是收拢了RPC调用，将上层一切对象封装成Invoker，然后屏蔽了下层remoting的实现细节，这种解耦好处在于为Dubbo支持异构系统打下了基础。  
