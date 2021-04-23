@@ -1,0 +1,32 @@
+1.首先我们引用的了远端的API在经过Dubbo的包装后，通过javaassist生成了proxy对象（com.alibaba.dubbo.common.bytecode.proxy0@60325987d）生成位置：TODO
+2.当发起调用时，实际是调用了一个包含Invoker对象的InvocationHandler实现类，该类里面仅实现了一个invoke方法，invoke对本地方法进行一些拦截(例如equals/hashcode/toString)，其余方法调用一律连同method和arguments封装成RpcInvoccation对象
+  参考实现类：InvokerInvocationHandler.java
+3.invoker对象调用时，和Provider一样，内部也维护了一组Consumer类型的InvokeChain，在Chain的末尾端，是DubboInvoker对象
+  参考类：ProtocolFilterWrapper.java
+4.DubboInvoker.invoke就是选择一个ExchangeClient对象，然后将RpcInvocation传入发起调用
+  参考代码：DubboInvoker.doInvoke
+5.ExchangeClient也是仿照Transport层设计，发送接收请求也是通过Channel，因此这里期望将RpcInvocation传入给客户端，也是先将其包装成了Request对象，然后由Client内部维护的ExchangeChannel进行send。
+  参考代码：HeaderExchangeChannel.request
+6.通过Dubbo官方文档了解到，Exchange层一个重要的任务就是在发送时将同步请求转成异步，在接收请求时异步再转成同步，以此方式来达到客户端侧仿佛同步调用。所以在真正的请求发送前，Dubbo也是先创建了一个Future对象关联到了Channel中，在未来某一个Channel收到请求可以再通知Future。
+  参考代码：HeaderExchangeChannel.request
+  在发送前将request的id和Channel/Future进行关联，在后续接到服务端响应时，还可以根据id找到请求时用到的Channel和Future。参考代码：DefaultFuture构造方法
+7.ExchangeChannel发送请求，最终发送实际是交给了NettyChannel.send方法，NettyChannel的send方法在flush时会将Request对象序列化
+  参考代码：NettyChannel.send
+  NettyChannel的pipeline定义：NettyClient.doOpen -> initChannel方法
+8.序列化时会经过NettyCodecAdapter.InternalEncoder编码器，内部实现和Provider一样，最终都是用DubboCodec
+  参考代码：NettyCodecAdapter.InternalEncoder
+9.因为采用Dubbo协议，所以序列化请求报文格式，还是遵循了Dubbo的定义规范，魔数/标志位/响应码/RequestId/body长度；然后根据dubboUrl定义的序列化方式，这里通过SPI动态加载序列化实现类(encodeRequest方法第一行代码就是)
+  序列化参考代码：ExchangeCodec.encodeRequest
+10.最终将序列化完成的ByteBuf输出到网络即可
+11.由等待服务端处理完成后，服务端会将返回结果以byte数组方式返回给客户端，客户端接到后第一件事就是将bytes进行反序列化成Response对象。
+   参考代码：InternalDecoder.decode
+12.反序列化和序列化用的都是同一个Codec，即DubboCodec，只不过这次换了decodeBody方法，该方法也是根据2部分进行反序列化：1) 对报文头进行反序列化； 2) 对报文内容进行反序列化
+   参考代码：DubboCodec.decodeBody
+13.经历完成反序列化，会拿到一个Response对象(Response里的id和Request的id是同一个)，然后交给下一个Handler来处理，这里就会走到NettyClientHandler.channelRead
+14.NettyClientHandler判断这是一个业务响应后，会将它包装成Runnable任务交给AllChannelHandler里的线程池，目的是将业务线程池和IO线程池解耦
+   参考代码：AllChannelHandler.received
+15.当业务线程池执行到刚刚提交的这个任务后，会将ResponseId取出，找到对应的Future
+   参考代码：DecodeHandler.received -> DefaultFuture.received
+16.将Response对象赋值给Future，并通知挂起恢复正常(挂起位置：DubboInvoker.doInvoke)
+   参考代码：DefaultFuture.doReceived
+17.最终恢复的线程继续向下执行，将返回结果返回给上游即可。

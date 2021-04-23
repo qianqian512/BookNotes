@@ -1,5 +1,6 @@
-1.dubbo的twoway是干嘛的
+#### Dubbo的心跳在哪层实现的
 
+#### Dubbo的Exchange层是如何设计的，里面的ExchangClient/ExchangeServer/ExchangeChannel/ChannelHandler都是怎么做到承上启下的？
 
 #### Dubbo优雅停机过程 TODO
 还没看代码，猜测应该是通过addShutdownHook增加钩子监听JVM关闭事件(kill -15或者System.exit(0)触发)。

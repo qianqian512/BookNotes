@@ -2,6 +2,9 @@ package org.apache.dubbo.extensionloader;
 
 import org.apache.dubbo.common.extension.ExtensionLoader;
 
+/**
+ * 引用服务后生成的Java类
+ */
 public class UserService$Adaptive implements org.apache.dubbo.extensionloader.UserService {
 	public java.lang.String regist(java.lang.String arg0) {
 		throw new UnsupportedOperationException(
