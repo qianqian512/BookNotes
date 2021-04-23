@@ -2,6 +2,10 @@
 
 #### Dubbo的Exchange层是如何设计的，里面的ExchangClient/ExchangeServer/ExchangeChannel/ChannelHandler都是怎么做到承上启下的？
 
+#### Dubbo服务端的线程池一般默认配置是fix200，客户端的配置呢？Dubbo客户端线程池具体做什么工作？
+  1.通过debug跟代码发现，客户端线程池类型是cache，可以参考CachedThreadPool.java
+  2.Dubbo客户端线程池主要是用于处理接收反序列化完的Response对象，并通知调用时阻塞挂起的线程，做的事情比较简单。
+
 #### Dubbo优雅停机过程 TODO
 还没看代码，猜测应该是通过addShutdownHook增加钩子监听JVM关闭事件(kill -15或者System.exit(0)触发)。
 然后优雅停机的过程猜测应该是先摘除在zk节点上个的流量，然后由zk通知消费者。等dubbo内部线程池中的任务队列清空，就可以退出停机了。

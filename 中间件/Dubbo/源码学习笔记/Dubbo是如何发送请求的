@@ -30,3 +30,13 @@
 16.将Response对象赋值给Future，并通知挂起恢复正常(挂起位置：DubboInvoker.doInvoke)
    参考代码：DefaultFuture.doReceived
 17.最终恢复的线程继续向下执行，将返回结果返回给上游即可。
+
+
+总结：Dubbo发送请求过程
+ 1.通过生成的代理对象发起调用，经过一系列的Consumer类型的Filter，最终调用到DubboInvoker
+ 2.DubboInvoker将请求参数和method包装成RpcInvocation交给Exchange层处理
+ 3.Exchange层主要用于屏蔽异步同步差异，对上游统一提供同步处理功能，而处理方法就是每次请求创建一个唯一的RequestId，然后将id和Future存到Map中进行关联，等服务端响应时再通过Future通知阻塞的线程。
+ 4.Exchange层准备好后，将请求交给Transport层，根据创建NettyClient时的定义，Handler由3部分组成：编码请求/解码响应/处理响应
+ 5.当服务单处理完成后，将响应结果发回给客户端，客户端Transport层的NettyHandler会监听到，此时Inbound侧一个接入的Handler就是解码，将服务端发送的bytes进行反序列化，转成Response对象。
+ 6.IO线程完成反序列化工作后，会将Response交给Dubbo线程池处理，Dubbo线程会根据ResponseId找到当时请求关联的Future，并将Response赋值给Future对象，然后通过Future唤醒当时阻塞的线程。
+ 7.最终恢复的线程继续向下执行，将返回结果返回给上游即可。
