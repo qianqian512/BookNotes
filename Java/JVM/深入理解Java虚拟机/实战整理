@@ -1,0 +1,3 @@
+### OOM场景
+ 1) 因为使用cglib这种动态生成class文件导致的OOM，一般发生于JDK6及以下存在PermSpace的JDK版本，在JDK7以上基本上是不会出现了。
+ 2) 
