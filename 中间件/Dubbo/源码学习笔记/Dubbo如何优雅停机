@@ -1,0 +1,32 @@
+#### Dubbo优雅停机过程
+通过注册JVM钩子实现，参考代码：DubboShutdownHook.java，整个停机过程分为2大块
+ 1.先销毁注册中心上的注册的节点
+ 2.注销协议，例如Dubbo协议（DubboProtocol.destory）
+ 
+先说注册中心层面的停机工作内容(以Zookeeper为例)
+ 1.如果运行实例中有Provider对外提供服务，则需要先将自己在注册中心注册的提供服务节点删除，代表当前节点已经不再对外提供服务，新的Consumer读取Provider列表时就不再读到这个正在停机的Provider。
+ 2.unsubscribe？NotifyListener是干嘛用的？
+   参考代码：com.alibaba.dubbo.registry.support.AbstractRegistry.destroy
+ 3.将重连注册中心的Timer停止调度
+   参考代码：com.alibaba.dubbo.registry.support.FailbackRegistry.destroy
+ 4.关闭注册中心客户端【zkClient.close();】
+   参考代码：com.alibaba.dubbo.registry.zookeeper.ZookeeperRegistry.destroy
+
+下面分析协议层销毁过程，简言之就是停止ExchangeServer、普通ExchangeClient和ghostClient
+   参考代码：com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol.destroy
+ 
+   参考代码：com.alibaba.dubbo.remoting.exchange.support.header.HeaderExchangeServer
+ 将NettyServer标记为closing状态（这个中间状态对NettyServer有什么影响，如果有流量进来还收吗？）
+   参考代码：NettyServer.close
+ 给所有客户端连接发送readonly消息，告知Consumer不再接受任何请求(该消息是一个单项消息，Dubbo报文中twoway是false)，Consumer只能读取来自该Provider的消息。
+   参考代码：com.alibaba.dubbo.remoting.exchange.support.header.HeaderExchangeServer.sendChannelReadOnlyEvent
+ 停止Provider的心跳
+   参考代码：com.alibaba.dubbo.remoting.exchange.support.header.HeaderExchangeServer.stopHeartbeatTimer
+ 停止NettyServer：
+   参考代码：com.alibaba.dubbo.remoting.transport.netty4.NettyServer.doClose
+
+#### 如果一个请求正在执行过程中并阻塞了线程，此时对优雅停机有什么影响？
+ TODO 
+
+#### 优雅停机时，Dubbo容器和Spring容器都收到了销毁的命令，假如Dubbo依赖的Spring对象先于Dubbo销毁怎么处理？
+补充个示例：优雅停机后虽然会先摘除流量，但正在执行的DubboProvider方法还未结束，此时还处于执行状态。
