@@ -11,6 +11,17 @@
 然后优雅停机的过程猜测应该是先摘除在zk节点上个的流量，然后由zk通知消费者。等dubbo内部线程池中的任务队列清空，就可以退出停机了。
 
 
+	Dubbo在设计上是如何支持Telnet协议的
+	Dubbo的InJVM协议是干嘛的？
+	Dubbo的Filter和Listener分别在什么时候触发
+	Dubbo在设计上是如何支持Group和Version的，作为server端运行时怎么区分调用的？
+	Dubbo是如何通过ExtensionLoader完整自加载的
+	ExtensionLoader的@Adaptive和@Activate的区别
+	Dubbo传输数据格式什么样
+	Dubbo的Wrapper是如何创建的，有什么用（例如ProtocolFilterWrapper）
+	Dubbo是如何做到字节码增强的
+	Exchange层存在的目的是什么？
+
 
 
 
