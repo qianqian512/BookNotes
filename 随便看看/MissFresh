@@ -1,0 +1,2 @@
+#### sms-basic启动命令
+java -jar -server -Xmx4g -Xms4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+UseStringDeduplication -XX:-OmitStackTraceInFastThrow -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -Dspring.profiles.active=prod -javaagent:/usr/local/services/pinpoint-agent/pinpoint-bootstrap.jar -Dpinpoint.agentId=idc01-assms-basic-03 -Dpinpoint.applicationName=sms-basic -Dfastjson.parser.safeMode=true /data/app/sms-basic.jar
